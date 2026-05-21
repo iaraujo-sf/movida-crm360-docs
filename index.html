@@ -513,6 +513,13 @@
   <h2>Onde Mexe</h2>
   <p>Fronteira clara: vendedor nunca sai do CRM. Dev Movida nunca entra no Salesforce.</p>
 
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Metadata-Driven Architecture:</strong> O Salesforce e uma plataforma orientada a metadata — campos, objetos, layouts, automacoes, permissoes e processos sao <em>configuracao declarativa</em>, nao codigo compilado. Isso significa que alteracoes no CRM (novo campo, nova regra de atribuicao, novo layout por BU) sao feitas via Setup UI sem deploy de codigo, sem downtime e com rollback nativo via Change Sets ou DevOps Center.</p>
+    <p><strong>Separacao por perfil:</strong> Object Manager (modelo), Flow Builder (automacao), Apex (integracao) sao ferramentas distintas com permissoes distintas. Admin configura sem risco de quebrar integracao; Dev integra sem alterar modelo de negocio.</p>
+    <p><strong>Impacto pratico:</strong> ~80% das mudancas do dia-a-dia da operacao CRM nao exigem release, CI/CD ou participacao de engenharia — sao "clicks not code" operados pelo Admin SF ou pela LEOO.</p>
+  </div>
+
   <div class="table-wrap">
   <table>
     <thead><tr><th>Camada</th><th>Onde configura</th><th>Exemplo</th><th>Quem</th></tr></thead>
@@ -548,6 +555,13 @@
 <div class="section" id="quem-opera">
   <h2>Quem Opera</h2>
 
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Shared Responsibility Model:</strong> Salesforce opera a infraestrutura (uptime, patches de seguranca, releases 3x/ano, backup, compliance SOC2/ISO27001). O cliente (via LEOO) opera a <em>configuracao</em> — modelo de dados, automacoes, permissoes, integrações. Nao ha gestao de servidores, OS, middleware ou banco de dados.</p>
+    <p><strong>Release Management nativo:</strong> Sandboxes (Dev, QA, UAT) + Change Sets ou SF CLI permitem promover configuracoes entre ambientes com governanca. Cada release da Salesforce (Spring/Summer/Winter) traz features novas que a LEOO avalia e ativa — sem custo de upgrade.</p>
+    <p><strong>Modelo operacional recomendado:</strong> LEOO como responsavel pelo dia-a-dia CRM com <em>transferencia de conhecimento progressiva</em> para Admin interno Movida. Salesforce disponibiliza Trailhead + Certification path para capacitacao.</p>
+  </div>
+
   <div class="table-wrap">
   <table>
     <thead><tr><th>Camada</th><th>Responsavel (dia-a-dia)</th><th>Aprova</th><th>Consultado</th></tr></thead>
@@ -574,6 +588,13 @@
 <!-- NATIVO vs DEV -->
 <div class="section" id="nativo-dev">
   <h2>O que e Nativo vs O que Exige Dev</h2>
+
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Clicks > Code > Custom:</strong> A filosofia da plataforma e esgotar configuracao declarativa antes de Flow, e esgotar Flow antes de Apex/LWC. Cada camada adiciona poder mas tambem complexidade de manutencao. O objetivo e maximizar a zona "nativa" para que mudancas de negocio nao dependam de ciclo de desenvolvimento.</p>
+    <p><strong>Pub/Sub API (gRPC) e nativa:</strong> A integracao por eventos nao exige middleware externo. O Salesforce expoe nativamente a Pub/Sub API em gRPC (:7443) para publicar e subscrever Platform Events e CDC — o Cloud Run da Movida conecta diretamente, sem camada intermediaria (MuleSoft, Kafka Connect, etc).</p>
+    <p><strong>Apex para excecoes controladas:</strong> Callouts sincronos (PDM, Vetor) sao o unico cenario que exige codigo no Salesforce. Representam &lt;5% do escopo. Todo o restante opera via configuracao (modelo, regras) ou Flow (automacao event-driven).</p>
+  </div>
 
   <h3><span class="badge badge-native">NATIVO</span> — Configuracao, zero codigo</h3>
   <div class="table-wrap">
@@ -637,6 +658,15 @@
   <h2>Onde Monitora</h2>
   <p>Cada time olha para seu dominio. Nao existe painel unico — mas existe <strong>correlation ID</strong> para rastrear end-to-end.</p>
 
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Event Monitoring (Shield):</strong> Logs detalhados de login, API calls, Report exports, data access — compliance-grade. Integravel com SIEM externo (Splunk, Chronicle).</p>
+    <p><strong>Setup Audit Trail:</strong> Quem mudou o que no Setup, quando. Retencao de 180 dias nativa, exportavel.</p>
+    <p><strong>Flow Error Handling:</strong> Cada Flow pode ter fault paths com notificacao automatica ao Admin. Erros sao rastreados no Flow Debug Log com contexto completo (registro, valores, step que falhou).</p>
+    <p><strong>Platform Event Monitoring:</strong> Metricas nativas de publicacao/consumo (EventBus metrics), incluindo pending deliveries e replay failures. Integravel com Cloud Monitoring via CDC outbound.</p>
+    <p><strong>Reports & Dashboards em tempo real:</strong> Gestores de BU monitoram SLA, aging, conversao e pipeline diretamente no CRM — sem ferramenta externa. Dynamic Dashboards permitem visao por loja/vendedor sem criar N reports.</p>
+  </div>
+
   <div class="table-wrap">
   <table>
     <thead><tr><th>Camada</th><th>O que monitorar</th><th>Onde</th><th>Quem</th></tr></thead>
@@ -669,6 +699,14 @@
   <h2>Como Evolui</h2>
   <p>Evolucao por <strong>adicao</strong>. Nenhum cenario novo exige refatoracao estrutural.</p>
 
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Multi-Tenant Architecture:</strong> Salesforce evolui a plataforma 3x por ano (Spring, Summer, Winter releases) com zero downtime para o cliente. Novas features ficam disponiveis automaticamente — a escolha de adotar e do cliente.</p>
+    <p><strong>Extensibilidade por design:</strong> Record Types, Page Layouts, Validation Rules, Flow Builder — todos sao mecanismos de extensao que nao exigem refatoracao para adicionar nova BU, novo canal ou novo objeto. O modelo e <em>aditivo</em> por natureza.</p>
+    <p><strong>Data Cloud como evolucao natural:</strong> Comeca com Identity Resolution (CPF/CNPJ). Evolui para Segmentation, Calculated Insights e Activation sem mudar a base — apenas habilita features sobre o mesmo data model.</p>
+    <p><strong>Agentforce como camada incremental:</strong> Opera sobre dados ja materializados no CRM. Nao exige nova integracao — usa o contexto que ja existe (Lead, Account, Historico) para gerar next-best-action, resumos e recomendacoes ao vendedor.</p>
+  </div>
+
   <div class="table-wrap">
   <table>
     <thead><tr><th>Cenario</th><th>Muda no CRM</th><th>Muda na Movida</th><th>Esforco</th></tr></thead>
@@ -699,6 +737,14 @@
 <!-- MANTEM -->
 <div class="section" id="mantem">
   <h2>Como Mantem</h2>
+
+  <div class="adr-card">
+    <h4>Posicionamento Tecnico Salesforce</h4>
+    <p><strong>Zero Infrastructure Maintenance:</strong> Nao ha patches de SO, upgrades de banco, capacity planning de infra ou gestao de certificados SSL. Salesforce gerencia tudo no modelo multi-tenant. A equipe LEOO foca em <em>configuracao de negocio</em>, nao em operacao de infraestrutura.</p>
+    <p><strong>Backward Compatibility garantida:</strong> APIs Salesforce mantem versionamento (v59, v60, v61...) com backward compatibility. Integracao feita na v60 continua funcionando quando sai v62 — nao ha breaking changes forcados.</p>
+    <p><strong>Sandbox Strategy:</strong> Ambientes isolados (Full Copy, Partial, Developer) para testar mudancas antes de produzir. Refresh trimestral recomendado para manter dados de teste atualizados.</p>
+    <p><strong>Health Check nativo:</strong> Score de seguranca com benchmarks do setor. Identifica configuracoes fora do padrao (permissoes excessivas, password policies fracas, sessoes sem MFA) e sugere remediacoes.</p>
+  </div>
 
   <h3>Governanca de eventos</h3>
   <p>Cada evento precisa de <strong>contrato</strong>: schema, publisher, consumers, SLA, retry, versionamento.</p>
