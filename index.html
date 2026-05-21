@@ -216,7 +216,6 @@
       <li class="nav-section-label">Referencia</li>
       <li><a href="#" data-section="jornadas">Jornadas Ilustrativas</a></li>
       <li><a href="#" data-section="adrs">Decisoes (ADRs)</a></li>
-      <li><a href="#" data-section="tradeoffs">Trade-Offs</a></li>
       <li class="nav-section-label">Estrategia</li>
       <li><a href="#" data-section="ea-analysis">EA Account Analysis</a></li>
     </ul>
@@ -246,9 +245,9 @@
 
   <div style="padding:48px 60px; max-width:900px; margin:0 auto;">
     <h2 style="font-size:24px; font-weight:700; color:var(--sf-dark); border-bottom:3px solid var(--sf-primary); padding-bottom:10px; margin-bottom:24px;">Este documento</h2>
-    <p>A Movida possui um ecossistema maduro — Pub/Sub, BigQuery, microsservicos, IA conversacional. <strong>O desafio nao e tecnologico. E operacional:</strong> unificar a visao do cliente, dar ferramentas ao vendedor, criar rastreabilidade.</p>
+    <p>Voces possuem um ecossistema maduro — Pub/Sub, BigQuery, microsservicos, IA conversacional. <strong>O desafio nao e tecnologico. E operacional:</strong> unificar a visao do cliente, dar ferramentas ao vendedor, criar rastreabilidade.</p>
     <p>Este documento apresenta a <strong>arte do possivel</strong>: como Salesforce se encaixa nesse ecossistema como camada operacional, sem substituir o que ja existe.</p>
-    <p>Cada secao responde uma das 7 perguntas da Arquitetura Movida — com exemplos ilustrativos baseados nas jornadas de negocio (RAC, CPA, GTF, SN).</p>
+    <p>Cada secao responde uma das 7 perguntas levantadas pela equipe de Arquitetura — com exemplos ilustrativos baseados nas jornadas de negocio (RAC, CPA, GTF, SN).</p>
 
     <div class="callout callout-info">
       <div class="callout-label">O que e</div>
@@ -266,7 +265,7 @@
   <h2>Regra de Ouro e Principios</h2>
 
   <div class="golden-rule">
-    <div class="golden-rule-label">Regra de Ouro — Definida pela Arquitetura Movida</div>
+    <div class="golden-rule-label">Regra de Ouro — Principio Arquitetural</div>
     <div class="golden-rule-text">"Se o CRM precisa SABER que algo aconteceu &rarr; EVENTO"</div>
     <div class="golden-rule-text">"Se o CRM precisa PEDIR algo agora &rarr; API"</div>
     <div class="golden-rule-sub">Criterio unico para toda decisao de integracao.</div>
@@ -557,7 +556,7 @@
 
   <div class="adr-card">
     <h4>Posicionamento Tecnico Salesforce</h4>
-    <p><strong>Shared Responsibility Model:</strong> Salesforce opera a infraestrutura (uptime, patches de seguranca, releases 3x/ano, backup, compliance SOC2/ISO27001). O cliente (via LEOO) opera a <em>configuracao</em> — modelo de dados, automacoes, permissoes, integrações. Nao ha gestao de servidores, OS, middleware ou banco de dados.</p>
+    <p><strong>Shared Responsibility Model:</strong> Salesforce opera a infraestrutura (uptime, patches de seguranca, releases 3x/ano, backup, compliance SOC2/ISO27001). Voces (via LEOO) operam a <em>configuracao</em> — modelo de dados, automacoes, permissoes, integracoes. Nao ha gestao de servidores, OS, middleware ou banco de dados.</p>
     <p><strong>Release Management nativo:</strong> Sandboxes (Dev, QA, UAT) + Change Sets ou SF CLI permitem promover configuracoes entre ambientes com governanca. Cada release da Salesforce (Spring/Summer/Winter) traz features novas que a LEOO avalia e ativa — sem custo de upgrade.</p>
     <p><strong>Modelo operacional recomendado:</strong> LEOO como responsavel pelo dia-a-dia CRM com <em>transferencia de conhecimento progressiva</em> para Admin interno Movida. Salesforce disponibiliza Trailhead + Certification path para capacitacao.</p>
   </div>
@@ -592,7 +591,7 @@
   <div class="adr-card">
     <h4>Posicionamento Tecnico Salesforce</h4>
     <p><strong>Clicks > Code > Custom:</strong> A filosofia da plataforma e esgotar configuracao declarativa antes de Flow, e esgotar Flow antes de Apex/LWC. Cada camada adiciona poder mas tambem complexidade de manutencao. O objetivo e maximizar a zona "nativa" para que mudancas de negocio nao dependam de ciclo de desenvolvimento.</p>
-    <p><strong>Pub/Sub API (gRPC) e nativa:</strong> A integracao por eventos nao exige middleware externo. O Salesforce expoe nativamente a Pub/Sub API em gRPC (:7443) para publicar e subscrever Platform Events e CDC — o Cloud Run da Movida conecta diretamente, sem camada intermediaria (MuleSoft, Kafka Connect, etc).</p>
+    <p><strong>Pub/Sub API (gRPC) e nativa:</strong> A integracao por eventos nao exige middleware externo. O Salesforce expoe nativamente a Pub/Sub API em gRPC (:7443) para publicar e subscrever Platform Events e CDC — o Cloud Run conecta diretamente, sem camada intermediaria (MuleSoft, Kafka Connect, etc).</p>
     <p><strong>Apex para excecoes controladas:</strong> Callouts sincronos (PDM, Vetor) sao o unico cenario que exige codigo no Salesforce. Representam &lt;5% do escopo. Todo o restante opera via configuracao (modelo, regras) ou Flow (automacao event-driven).</p>
   </div>
 
@@ -701,7 +700,7 @@
 
   <div class="adr-card">
     <h4>Posicionamento Tecnico Salesforce</h4>
-    <p><strong>Multi-Tenant Architecture:</strong> Salesforce evolui a plataforma 3x por ano (Spring, Summer, Winter releases) com zero downtime para o cliente. Novas features ficam disponiveis automaticamente — a escolha de adotar e do cliente.</p>
+    <p><strong>Multi-Tenant Architecture:</strong> Salesforce evolui a plataforma 3x por ano (Spring, Summer, Winter releases) com zero downtime. Novas features ficam disponiveis automaticamente — a escolha de adotar e de voces.</p>
     <p><strong>Extensibilidade por design:</strong> Record Types, Page Layouts, Validation Rules, Flow Builder — todos sao mecanismos de extensao que nao exigem refatoracao para adicionar nova BU, novo canal ou novo objeto. O modelo e <em>aditivo</em> por natureza.</p>
     <p><strong>Data Cloud como evolucao natural:</strong> Comeca com Identity Resolution (CPF/CNPJ). Evolui para Segmentation, Calculated Insights e Activation sem mudar a base — apenas habilita features sobre o mesmo data model.</p>
     <p><strong>Agentforce como camada incremental:</strong> Opera sobre dados ja materializados no CRM. Nao exige nova integracao — usa o contexto que ja existe (Lead, Account, Historico) para gerar next-best-action, resumos e recomendacoes ao vendedor.</p>
@@ -778,7 +777,7 @@
 <!-- JORNADAS -->
 <div class="section" id="jornadas">
   <h2>Jornadas Ilustrativas</h2>
-  <p>Baseadas nas personas e fluxos apresentados pela Salesforce para a Movida. Ilustram <strong>como a arquitetura opera</strong> em cenarios reais de cada BU.</p>
+  <p>Baseadas nas personas e fluxos discutidos em conjunto. Ilustram <strong>como a arquitetura opera</strong> em cenarios reais de cada BU.</p>
 
   <div class="persona">
     <div class="persona-avatar">P</div>
@@ -807,7 +806,7 @@
   <img src="assets/jornada-rac.jpg" alt="Fluxo sistemico Jornada RAC — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
   <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
-    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> O fluxo abaixo e um exemplo hipotetico para ilustrar o padrao arquitetural. Nao temos profundidade dos processos internos da Movida para afirmar que esta sera a implementacao final — isso sera definido em workshops de detalhamento.</p>
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> O fluxo abaixo e um exemplo hipotetico para ilustrar o padrao arquitetural. Ainda nao temos profundidade suficiente dos processos internos para afirmar que esta sera a implementacao final — isso sera definido em workshops de detalhamento.</p>
 
     <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
     <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
@@ -841,7 +840,7 @@
   <img src="assets/jornada-cpa.png" alt="Fluxo sistemico Jornada CPA WhatsApp — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
   <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
-    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> Fluxo hipotetico para ilustrar o padrao de handoff IA → humano. A implementacao real depende de workshops com os times de IA, CRM e canais da Movida.</p>
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> Fluxo hipotetico para ilustrar o padrao de handoff IA → humano. A implementacao real depende de workshops com os times de IA, CRM e canais.</p>
 
     <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
     <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
@@ -971,38 +970,6 @@
   </div>
 </div>
 
-<!-- TRADE-OFFS -->
-<div class="section" id="tradeoffs">
-  <h2>Trade-Offs e Transparencia</h2>
-
-  <h3>Ganhamos vs Aceitamos</h3>
-  <div class="table-wrap">
-  <table>
-    <thead><tr><th>Ganho</th><th>Trade-off</th></tr></thead>
-    <tbody>
-      <tr><td>Vendedor ve tudo em 0ms</td><td>Eventual consistency (30-60s)</td></tr>
-      <tr><td>CRM funciona com sistemas fora</td><td>Storage cresce (materializacao)</td></tr>
-      <tr><td>Bus neutro (sem lock-in)</td><td>Bridge exige manutencao</td></tr>
-      <tr><td>Visao 360 cross-BU</td><td>Depende de CPF correto</td></tr>
-      <tr><td>Evolucao por adicao</td><td>Setup inicial ~3-4 meses</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <h3>Perguntas dificeis</h3>
-  <div class="table-wrap">
-  <table>
-    <thead><tr><th>Pergunta</th><th>Resposta</th></tr></thead>
-    <tbody>
-      <tr><td>"Por que nao MuleSoft?"</td><td>Movida ja opera Cloud Run. Custo + complexidade sem valor adicional.</td></tr>
-      <tr><td>"E se trocar o Salesforce?"</td><td>Eventos no Pub/Sub (bus neutro). Qualquer CRM substitui como consumer.</td></tr>
-      <tr><td>"Eventos se perdem?"</td><td>DLQ + retry exponencial + replay + alertas.</td></tr>
-      <tr><td>"Data Cloud obrigatorio?"</td><td>Nao no go-live. Sales Cloud funciona standalone.</td></tr>
-      <tr><td>"Consultar BigQuery direto?"</td><td>Nao. Insights viram eventos. Principio Operational vs Analytical.</td></tr>
-    </tbody>
-  </table>
-  </div>
-</div>
 
 
 <!-- EA ACCOUNT ANALYSIS -->
@@ -1014,7 +981,7 @@
   </div>
 
   <h3>Executive Summary</h3>
-  <p>A Movida opera um ecossistema de backend maduro (Google Cloud Pub/Sub, BigQuery, microsservicos especializados, IA conversacional LangGraph/MCPs), mas carece de uma <strong>camada operacional unificada</strong> para o vendedor — resultando em fragmentacao de visao do cliente entre 4 BUs, impossibilidade de cross-sell e dependencia de consulta manual a multiplos sistemas. A recomendacao e posicionar Salesforce Sales Cloud como camada operacional (nao hub), integrada ao ecossistema existente via Pub/Sub API nativa (gRPC :7443), preservando 100% do investimento GCP.</p>
+  <p>O ecossistema de backend e maduro (Google Cloud Pub/Sub, BigQuery, microsservicos especializados, IA conversacional LangGraph/MCPs), mas ainda carece de uma <strong>camada operacional unificada</strong> para o vendedor — resultando em fragmentacao de visao do cliente entre 4 BUs, impossibilidade de cross-sell e dependencia de consulta manual a multiplos sistemas. A recomendacao e posicionar Salesforce Sales Cloud como camada operacional (nao hub), integrada ao ecossistema existente via Pub/Sub API nativa (gRPC :7443), preservando 100% do investimento GCP.</p>
 
   <h3>1. Strategic Drivers</h3>
   <div class="table-wrap">
@@ -1150,32 +1117,15 @@
   </table>
   </div>
 
-  <h3>6. Conversation Strategy</h3>
-
-  <div class="adr-card">
-    <h4>Opening Frame</h4>
-    <p><em>"Analisando a arquitetura que voces construiram — Pub/Sub como bus, microsservicos por dominio, IA conversacional — temos uma fundacao tecnica madura. A pergunta que queremos explorar juntos e: <strong>como dar ao vendedor a mesma maturidade que o backend ja tem</strong>, sem duplicar governanca ou criar acoplamento?"</em></p>
-  </div>
-
-  <h4>Key Questions</h4>
+  <h3>6. Perguntas em Aberto</h3>
+  <p>Pontos que precisamos explorar juntos para evoluir da "arte do possivel" para especificacao implementavel:</p>
   <ol>
-    <li><strong>"Qual e o tempo medio entre lead chegar e primeiro contato? Voces medem?"</strong> — Valida gap de SLA.</li>
-    <li><strong>"Quando a IA faz handoff, o que acontece com o contexto? Vendedor recebe ou comeca do zero?"</strong> — Valida gap de handoff.</li>
-    <li><strong>"Ja tentaram cross-sell entre BUs? O que impediu?"</strong> — Valida gap de identity resolution.</li>
-    <li><strong>"O ms-leads publica em formato canonico ou cada canal tem schema proprio?"</strong> — Valida maturidade para integracao.</li>
-    <li><strong>"Qual o appetite para operar CRM com time proprio vs depender de parceiro?"</strong> — Define modelo operacional.</li>
+    <li><strong>Qual e o tempo medio entre lead chegar e primeiro contato hoje? Existe medicao?</strong> — Dimensiona o valor do SLA automatico.</li>
+    <li><strong>Quando a IA faz handoff, o que acontece com o contexto da conversa?</strong> — Define o payload do evento de handoff.</li>
+    <li><strong>Ja houve tentativa de cross-sell entre BUs? O que impediu?</strong> — Valida a oportunidade de identity resolution.</li>
+    <li><strong>O ms-leads publica em formato canonico ou cada canal tem schema proprio?</strong> — Determina complexidade da transform layer.</li>
+    <li><strong>Qual o modelo operacional desejado? Time interno de Admin SF ou 100% via LEOO?</strong> — Define enablement e transferencia de conhecimento.</li>
   </ol>
-
-  <h4>Landmines</h4>
-  <div style="background:#ffebee; border-left:4px solid #c62828; padding:0.8rem 1rem; border-radius:0 6px 6px 0; font-size:0.9rem;">
-    <ul style="margin:0; padding-left:1.2rem;">
-      <li>Nao questionar escolha de Pub/Sub (decisao consolidada)</li>
-      <li>Nao sugerir SF como hub/substituto do bus ou lake</li>
-      <li>Nao mencionar MuleSoft proativamente (ja descartado)</li>
-      <li>Nao prometer fields/schemas (nivel arte do possivel)</li>
-      <li>Cuidado com parceiro LEOO — alinhar como complementar, nao concorrente</li>
-    </ul>
-  </div>
 
   <h3>7. Research Opportunities</h3>
   <p>Gaps de informacao que fortaleceriam esta analise em workshops subsequentes:</p>
@@ -1183,11 +1133,11 @@
   <table>
     <thead><tr><th>O que pesquisar</th><th>Fonte</th><th>Valor</th></tr></thead>
     <tbody>
-      <tr><td>Volumetria real por BU (CPA, GTF, SN)</td><td>Dados internos Movida</td><td>Sizing de licenciamento</td></tr>
+      <tr><td>Volumetria real por BU (CPA, GTF, SN)</td><td>Dados internos (times de BU)</td><td>Sizing de licenciamento</td></tr>
       <tr><td>Schema do evento LeadCreated</td><td>Time de engenharia</td><td>Define transform layer da bridge</td></tr>
       <tr><td>Payload do ConversationHandoff</td><td>Time IA / conversation-svc</td><td>Campos a materializar no Lead</td></tr>
       <tr><td>API spec do PDM (REST? gRPC?)</td><td>Time PDM</td><td>Define callout (Apex vs Flow HTTP)</td></tr>
-      <tr><td>Hierarquia de lojas</td><td>Operacao Movida</td><td>Territory Management vs custom</td></tr>
+      <tr><td>Hierarquia de lojas</td><td>Time de operacao</td><td>Territory Management vs custom</td></tr>
       <tr><td>CRM atual (se existe)</td><td>Leandro/stakeholders</td><td>Migracao vs greenfield</td></tr>
       <tr><td>MS-COMUNICACAO: canais e templates</td><td>Time comunicacao</td><td>Fronteira MC vs MS-COMUNICACAO</td></tr>
       <tr><td>Roadmap IA Movida (6-12 meses)</td><td>Time produto/IA</td><td>Antecipar eventos + Agentforce</td></tr>
