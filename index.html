@@ -709,42 +709,23 @@
     <div class="story-rule"><strong>Diferencial:</strong> Cross-sell so e possivel porque visao 360 unifica PF (CPF) com PJ (CNPJ) via Data Cloud.</div>
   </div>
 
-  <pre>
-  ┌─────────┐      ┌──────────┐      ┌─────────────┐      ┌───────────┐      ┌────────────┐      ┌───────────┐
-  │  Paulo  │─────▶│Formulario│─────▶│  ms-leads   │─────▶│  Pub/Sub  │─────▶│  Cloud Run │─────▶│Sales Cloud│
-  │  (PJ)   │      │GTF + CNPJ│      │(padroniza)  │      │   GCP     │      │(transform) │      │  (Lead)   │
-  └─────────┘      └──────────┘      └─────────────┘      └───────────┘      └────────────┘      └─────┬─────┘
-                                                                                                        │
-              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░  EVENTO  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
-                                                                                                        │
-  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┘
-  │
-  │   ┌───────────┐                    ┌─────────────────────────────────────────────────────────┐
-  └──▶│Agentforce │──▶ SDR Mariana     │  Mariana ve Visao 360:                                  │
-      │ (triagem) │    assignment      │   • CNPJ validado + dados Neoway enriquecidos          │
-      └───────────┘                    │   • Paulo (CPF) ja e cliente CPA! (Data Cloud)         │
-                                       │   • Recomendacao: condicoes especiais (cross-sell)      │
-                                       └────────────────────────────────────────────────────┬────┘
-                                                                                            │
-  ┌─────────────┐      ┌───────────┐      ┌────────────┐    EVENTO                         │
-  │   Neoway    │─────▶│  Pub/Sub  │─────▶│  Cloud Run │──────────────────────────────────▶ │
-  │(valida CNPJ)│      │   GCP     │      │(enriquece) │   (CNPJValidated)                  │
-  └─────────────┘      └───────────┘      └────────────┘                                    │
-                                                                                            │
-                                                                  ╔══════════╗              │
-                                                 PDM Proposta ◀───║ API SINC ║◀─────────────┘
-                                                       │          ╚══════════╝
-                                                       ▼
-                                                 Proposta enviada
-                                                 Assinatura recebida
-                                                       │
-  ┌─────────┐      ┌────────────┐                     │
-  │ Billing │◀─────│  Pub/Sub   │◀── CDC (OppWon) ────┘    EVENTO (CDC outbound)
-  │Contratos│      │    GCP     │◀── Cloud Run ◀── SF Pub/Sub API
-  └─────────┘      └────────────┘
+  <img src="assets/jornada-gtf.png" alt="Fluxo sistemico Jornada GTF — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
-  ─── EVENTO (lead, enriquecimento CNPJ, CDC)     ═══ API (somente gerar proposta PDM)
-  </pre>
+  <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> Fluxo hipotetico para ilustrar o padrao de integracao B2B (PJ). A implementacao final depende de workshops com os times de GTF, integracao Neoway e PDM.</p>
+
+    <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
+    <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
+      <li><strong>Ingestao (EVENTO):</strong> Paulo preenche formulario GTF com CNPJ da empresa de distribuicao. <code>ms-leads</code> normaliza (CNPJ, BU=GTF, porte, segmento) e publica <code>LeadCreated</code> no Pub/Sub GCP. Cloud Run transforma e entrega ao Salesforce via gRPC.</li>
+      <li><strong>Triagem e Assignment (CRM nativo):</strong> Agentforce realiza triagem automatica do lead GTF e distribui para SDR Mariana via assignment rule por segmento/regiao.</li>
+      <li><strong>Enriquecimento CNPJ (EVENTO):</strong> Integracao Neoway valida CNPJ, consulta dados (faturamento, porte, quadro societario) e publica evento <code>CNPJValidated</code> no bus. Cloud Run entrega ao SF — dados materializados no Lead. Mariana ve informacao enriquecida sem callout sincrono.</li>
+      <li><strong>Visao 360 + Cross-sell (Data Cloud):</strong> Data Cloud resolve identidade: Paulo (CPF) como pessoa fisica ja e cliente CPA. Mariana ve oportunidade de cross-sell e oferece condicoes especiais por ser cliente existente.</li>
+      <li><strong>Proposta PDM (API SINCRONA):</strong> Mariana aciona geracao de proposta via callout sincrono ao PDM. API porque a SDR espera o documento na tela para envio imediato ao cliente.</li>
+      <li><strong>Fechamento e CDC (EVENTO):</strong> Assinatura recebida → Opportunity fechada. CDC gera <code>OpportunityChangeEvent</code> automaticamente. Cloud Run subscreve, transforma e publica <code>opportunity-won</code>. Billing e Contratos reagem de forma independente.</li>
+    </ol>
+
+    <p style="margin:0.8rem 0 0;"><strong>Padrao resultante:</strong> Lead, enriquecimento CNPJ e fechamento sao <em>evento</em>. Unico ponto sincrono e a geracao de proposta no PDM. Cross-sell so e possivel porque Data Cloud unifica PF (CPF) e PJ (CNPJ) no mesmo perfil.</p>
+  </div>
 
   <div class="story" data-icon="&#128664;">
     <div class="story-label">Jornada Seminovos</div>
