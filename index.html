@@ -217,7 +217,6 @@
       <li><a href="#" data-section="jornadas">Jornadas Ilustrativas</a></li>
       <li><a href="#" data-section="adrs">Decisoes (ADRs)</a></li>
       <li><a href="#" data-section="tradeoffs">Trade-Offs</a></li>
-      <li><a href="#" data-section="workshops">Workshops</a></li>
     </ul>
   </nav>
   <div class="sidebar-footer">Confidencial — Uso Interno<br>v3.0 · Maio 2026</div>
@@ -842,43 +841,6 @@
   </div>
 </div>
 
-<!-- WORKSHOPS -->
-<div class="section" id="workshops">
-  <h2>Workshops Necessarios</h2>
-  <p>De "arte do possivel" para "especificacao implementavel". Cada workshop tem entregavel concreto.</p>
-
-  <div class="table-wrap">
-  <table>
-    <thead><tr><th>#</th><th>Workshop</th><th>Objetivo</th><th>Entregavel</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td><strong>Event Mapping</strong></td><td>Contratos de cada evento</td><td>Event Contracts assinados</td></tr>
-      <tr><td>2</td><td><strong>Volumetria</strong></td><td>Numeros reais para licenciamento</td><td>Sizing doc</td></tr>
-      <tr><td>3</td><td><strong>Handoff IA</strong></td><td>Payload, UX, SLA</td><td>Spec + mockup</td></tr>
-      <tr><td>4</td><td><strong>Territory</strong></td><td>Hierarquia lojas, distribuicao</td><td>Regras documentadas</td></tr>
-      <tr><td>5</td><td><strong>Comunicacao</strong></td><td>MC vs MS-COMUNICACAO</td><td>Mapa de canais</td></tr>
-      <tr><td>6</td><td><strong>Data Cloud</strong></td><td>Identity resolution, ingestao</td><td>Plano de ingestao</td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <div class="callout callout-danger">
-    <div class="callout-label">Bloqueio</div>
-    <strong>Sem Workshop 1 (Event Mapping), nenhum desenvolvimento pode comecar.</strong>
-  </div>
-
-  <pre>
-    Semana 1-2        Semana 2-3        Semana 3-4        Semana 4+
-    ┌──────────┐     ┌──────────┐      ┌──────────┐     ┌──────────┐
-    │ W1: Event│     │ W2: Vol. │      │ W3: IA   │     │ W5: Comm │
-    │  Mapping │────▶│  Sizing  │──┐   │  Handoff │     │ W6: DC   │
-    └──────────┘     └──────────┘  │   └──────────┘     └──────────┘
-                                   │   ┌──────────┐
-                                   └──▶│ W4: Terr.│
-                                       └──────────┘
-    ═══════════════════════════════════════════════════════════════════
-    APOS WORKSHOPS → Desenvolvimento com contratos definidos
-  </pre>
-</div>
 
 </main>
 
