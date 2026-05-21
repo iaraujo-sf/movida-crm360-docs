@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movida CRM 360 — Arte do Possível</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sf-primary:    #0176D3;
+    --sf-dark:       #032D60;
+    --sf-light-bg:   #F4F6F9;
+    --sf-highlight:  #EEF4FF;
+    --sf-success:    #2E844A;
+    --sf-warning:    #FE9339;
+    --sf-error:      #EA001E;
+    --sf-text:       #181818;
+    --sf-text-sec:   #706E6B;
+    --sf-border:     #DDDBDA;
+    --sf-white:      #FFFFFF;
+    --sidebar-w:     280px;
+    --movida-orange: #F26522;
+    --gcp-blue:      #4285F4;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px; line-height: 1.65; color: var(--sf-text);
+    background: var(--sf-light-bg);
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--sf-dark);
+    color: white; overflow-y: auto;
+    display: flex; flex-direction: column;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .sidebar-logos {
+    display: flex; align-items: center; gap: 12px; justify-content: center;
+  }
+  .sidebar-logos img, .sidebar-logos svg { height: 28px; }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    text-align: center; color: rgba(255,255,255,0.9);
+  }
+  .sidebar-subtitle {
+    font-size: 10px; color: rgba(255,255,255,0.5);
+    text-transform: uppercase; letter-spacing: 1px; text-align: center;
+  }
+
+  .sidebar-nav { flex: 1; padding: 16px 0; }
+  .sidebar-nav ul { list-style: none; }
+  .sidebar-nav li { margin: 0; }
+  .sidebar-nav a {
+    display: block; padding: 10px 24px;
+    color: rgba(255,255,255,0.7); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+  }
+  .sidebar-nav a:hover {
+    color: white; background: rgba(255,255,255,0.05);
+    border-left-color: rgba(255,255,255,0.3);
+  }
+  .sidebar-nav a.active {
+    color: white; background: rgba(1,118,211,0.3);
+    border-left-color: var(--sf-primary); font-weight: 600;
+  }
+  .sidebar-nav .nav-section-label {
+    padding: 18px 24px 6px; font-size: 10px; font-weight: 700;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+  .sidebar-footer {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 10px; color: rgba(255,255,255,0.35); text-align: center;
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  .main-content {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+  }
+
+  /* ===== COVER SECTION ===== */
+  .cover-section {
+    background: linear-gradient(135deg, var(--sf-dark) 0%, #0055A5 60%, var(--sf-primary) 100%);
+    padding: 80px 60px; color: white;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .cover-section::before {
+    content: ''; position: absolute; top: -100px; right: -100px;
+    width: 500px; height: 500px; background: rgba(255,255,255,0.03); border-radius: 50%;
+  }
+  .cover-section::after {
+    content: ''; position: absolute; bottom: -80px; left: -60px;
+    width: 400px; height: 400px; background: rgba(255,255,255,0.02); border-radius: 50%;
+  }
+  .cover-logos {
+    display: flex; align-items: center; gap: 24px; margin-bottom: 40px;
+    position: relative; z-index: 1;
+  }
+  .cover-logos img, .cover-logos svg { height: 40px; }
+  .cover-divider { width: 1px; height: 36px; background: rgba(255,255,255,0.3); }
+  .cover-h1 { font-size: 36px; font-weight: 700; margin-bottom: 12px; position: relative; z-index: 1; }
+  .cover-h2 { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 40px; position: relative; z-index: 1; }
+  .cover-meta-grid {
+    display: grid; grid-template-columns: repeat(3, auto); gap: 12px 32px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 20px 32px; position: relative; z-index: 1;
+  }
+  .cover-meta-item { text-align: center; }
+  .cover-meta-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5); }
+  .cover-meta-value { font-size: 12px; font-weight: 600; color: white; }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    display: none; padding: 48px 60px; max-width: 900px; margin: 0 auto;
+    animation: fadeIn 0.3s ease;
+  }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section h2 {
+    font-size: 24px; font-weight: 700; color: var(--sf-dark);
+    border-bottom: 3px solid var(--sf-primary);
+    padding-bottom: 10px; margin-bottom: 24px;
+  }
+  .section h3 { font-size: 17px; font-weight: 600; color: var(--sf-primary); margin-top: 32px; margin-bottom: 14px; }
+  .section h4 { font-size: 14px; font-weight: 600; color: var(--sf-dark); margin-top: 20px; margin-bottom: 10px; }
+  .section p { margin-bottom: 12px; }
+  .section ul, .section ol { margin: 10px 0 16px 24px; }
+  .section li { margin-bottom: 5px; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; margin: 18px 0; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; background: white; }
+  thead th { background: var(--sf-dark); color: white; font-weight: 600; padding: 10px 14px; text-align: left; }
+  tbody tr:nth-child(even) { background: var(--sf-light-bg); }
+  tbody tr:hover { background: var(--sf-highlight); }
+  td, th { padding: 9px 14px; border: 1px solid var(--sf-border); vertical-align: top; }
+
+  /* CALLOUTS */
+  .callout { border-radius: 6px; padding: 14px 18px; margin: 18px 0; font-size: 13px; line-height: 1.6; }
+  .callout-info    { border-left: 4px solid var(--sf-primary); background: var(--sf-highlight); }
+  .callout-warning { border-left: 4px solid var(--sf-warning); background: #FFF8E6; }
+  .callout-success { border-left: 4px solid var(--sf-success); background: #E6F9E6; }
+  .callout-danger  { border-left: 4px solid var(--sf-error);   background: #FEF0F0; }
+  .callout-label { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+
+  /* GOLDEN RULE */
+  .golden-rule {
+    background: linear-gradient(135deg, #FFF8E1, #FFF3E0);
+    border: 2px solid var(--movida-orange); border-radius: 12px;
+    padding: 28px; margin: 24px 0; text-align: center;
+  }
+  .golden-rule-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--movida-orange); margin-bottom: 12px; }
+  .golden-rule-text { font-size: 17px; font-weight: 700; color: var(--sf-dark); margin-bottom: 4px; }
+  .golden-rule-sub { font-size: 12px; color: var(--sf-text-sec); margin-top: 10px; }
+
+  /* ADR CARDS */
+  .adr-card {
+    border: 1px solid var(--sf-border); border-top: 4px solid var(--sf-primary);
+    border-radius: 8px; padding: 20px 24px; margin: 20px 0;
+    background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  .adr-card h4 { margin-top: 0; color: var(--sf-dark); }
+
+  /* SCENARIO BLOCKS */
+  .scenario {
+    background: white; border-radius: 8px; padding: 20px 24px; margin: 20px 0;
+    border-left: 4px solid var(--gcp-blue); box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .scenario-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gcp-blue); margin-bottom: 10px; }
+  .scenario ol { margin-left: 20px; }
+
+  /* BADGES */
+  .badge { display: inline-block; border-radius: 12px; padding: 2px 10px; font-size: 10px; font-weight: 700; vertical-align: middle; }
+  .badge-native  { background: var(--sf-success); color: white; }
+  .badge-lowcode { background: var(--sf-warning); color: white; }
+  .badge-procode { background: var(--sf-primary); color: white; }
+  .badge-movida  { background: var(--movida-orange); color: white; }
+
+  /* PRE BLOCKS */
+  pre {
+    background: #1a1a2e; color: #e0e0e0; border-radius: 8px; padding: 18px 20px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px;
+    line-height: 1.55; overflow-x: auto; margin: 16px 0;
+  }
+
+  /* MOBILE TOGGLE */
+  .mobile-toggle {
+    display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+    background: var(--sf-dark); color: white; border: none; border-radius: 6px;
+    padding: 8px 12px; cursor: pointer; font-size: 18px;
+  }
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main-content { margin-left: 0; }
+    .mobile-toggle { display: block; }
+    .section { padding: 48px 24px; }
+    .cover-section { padding: 60px 24px; }
+    .cover-meta-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MOBILE TOGGLE -->
+<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logos">
+      <!-- Salesforce Logo SVG -->
+      <svg viewBox="0 0 100 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:26px">
+        <path d="M41.5 14C44.7 8.5 50.4 5 56.8 5c9.1 0 16.5 7 17 16 4.7 1 8.2 5.1 8.2 10 0 5.6-4.5 10.1-10.1 10.1H25.6C19.2 41.1 14 35.9 14 29.5c0-6 4.5-11 10.3-11.8.5-6.7 6.1-11.7 12.9-11.7 1.5 0 3 .3 4.3.7z" fill="white" opacity="0.9"/>
+      </svg>
+      <!-- Movida Logo (text-based) -->
+      <svg viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg" style="height:20px">
+        <text x="0" y="22" font-family="Arial, sans-serif" font-weight="900" font-size="22" fill="#F26522">mov</text>
+        <text x="44" y="22" font-family="Arial, sans-serif" font-weight="900" font-size="22" fill="white">i</text>
+        <text x="52" y="22" font-family="Arial, sans-serif" font-weight="900" font-size="22" fill="#F26522">da</text>
+      </svg>
+    </div>
+    <div class="sidebar-title">CRM 360</div>
+    <div class="sidebar-subtitle">Arte do Possível</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ul>
+      <li><a href="#" data-section="cover" class="active">Início</a></li>
+      <li class="nav-section-label">Fundamentos</li>
+      <li><a href="#" data-section="regra-ouro">1. Regra de Ouro</a></li>
+      <li><a href="#" data-section="camadas">2. Visão de Camadas</a></li>
+      <li class="nav-section-label">7 Respostas</li>
+      <li><a href="#" data-section="onde-mexe">3. Onde Mexe</a></li>
+      <li><a href="#" data-section="quem-opera">4. Quem Opera</a></li>
+      <li><a href="#" data-section="nativo-dev">5. Nativo vs Dev</a></li>
+      <li><a href="#" data-section="monitora">6. Onde Monitora</a></li>
+      <li><a href="#" data-section="evolui">7. Como Evolui</a></li>
+      <li><a href="#" data-section="mantem">8. Como Mantém</a></li>
+      <li class="nav-section-label">Referência</li>
+      <li><a href="#" data-section="cenarios">9. Cenários Benchmark</a></li>
+      <li><a href="#" data-section="adrs">10. Decisões (ADRs)</a></li>
+      <li><a href="#" data-section="tradeoffs">11. Trade-Offs</a></li>
+      <li><a href="#" data-section="workshops">12. Workshops</a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    Confidencial — Uso Interno<br>v3.0 · Maio 2026
+  </div>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content">
+
+  <!-- COVER -->
+  <div class="section active" id="cover">
+    <div class="cover-section">
+      <div class="cover-logos">
+        <svg viewBox="0 0 100 70" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:44px">
+          <path d="M41.5 14C44.7 8.5 50.4 5 56.8 5c9.1 0 16.5 7 17 16 4.7 1 8.2 5.1 8.2 10 0 5.6-4.5 10.1-10.1 10.1H25.6C19.2 41.1 14 35.9 14 29.5c0-6 4.5-11 10.3-11.8.5-6.7 6.1-11.7 12.9-11.7 1.5 0 3 .3 4.3.7z" fill="white" opacity="0.9"/>
+        </svg>
+        <div class="cover-divider"></div>
+        <svg viewBox="0 0 140 30" xmlns="http://www.w3.org/2000/svg" style="height:28px">
+          <text x="0" y="23" font-family="Arial, sans-serif" font-weight="900" font-size="24" fill="#F26522">mov</text>
+          <text x="48" y="23" font-family="Arial, sans-serif" font-weight="900" font-size="24" fill="white">i</text>
+          <text x="57" y="23" font-family="Arial, sans-serif" font-weight="900" font-size="24" fill="#F26522">da</text>
+        </svg>
+      </div>
+      <h1 class="cover-h1">CRM 360 — Arte do Possível</h1>
+      <p class="cover-h2">Arquitetura Event-Driven | Salesforce + Google Cloud<br>Visão Executiva e Técnica de Capacidades</p>
+      <div class="cover-meta-grid">
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Versão</div>
+          <div class="cover-meta-value">3.0</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Data</div>
+          <div class="cover-meta-value">Maio 2026</div>
+        </div>
+        <div class="cover-meta-item">
+          <div class="cover-meta-label">Classificação</div>
+          <div class="cover-meta-value">Confidencial</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 48px 60px; max-width: 900px; margin: 0 auto;">
+      <h2 style="font-size:24px; font-weight:700; color:var(--sf-dark); border-bottom:3px solid var(--sf-primary); padding-bottom:10px; margin-bottom:24px;">Posicionamento</h2>
+      <p>Este documento é uma <strong>visão de arte do possível</strong> — não uma especificação de implementação. Apresenta como as capacidades Salesforce se encaixam no ecossistema Movida, respondendo às perguntas da arquitetura sem prescrever solução final.</p>
+      <div class="callout callout-info">
+        <div class="callout-label">O que este documento é</div>
+        <ul>
+          <li>Mapa de capacidades por camada (o que é possível, quem opera, como evolui)</li>
+          <li>Benchmark — como empresas similares integram CRM a event buses</li>
+          <li>Guia de decisão — princípios e trade-offs para orientar workshops</li>
+        </ul>
+      </div>
+      <div class="callout callout-warning">
+        <div class="callout-label">O que este documento NÃO é</div>
+        <ul>
+          <li>Especificação de campos, objetos ou schemas</li>
+          <li>Definição de payloads ou contratos de eventos</li>
+          <li>Solução final — isso será construído nos workshops</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: REGRA DE OURO -->
+  <div class="section" id="regra-ouro">
+    <h2>1. Regra de Ouro e Princípios</h2>
+
+    <div class="golden-rule">
+      <div class="golden-rule-label">Regra de Ouro — Definida pela Arquitetura Movida</div>
+      <div class="golden-rule-text">"Se o CRM precisa SABER que algo aconteceu → EVENTO"</div>
+      <div class="golden-rule-text">"Se o CRM precisa PEDIR algo agora → API"</div>
+      <div class="golden-rule-sub">Critério de decisão para toda integração presente e futura.</div>
+    </div>
+
+    <h3>Tradução prática</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Padrão</th><th>Quando usar</th><th>Característica</th><th>Exemplos genéricos</th></tr></thead>
+      <tbody>
+        <tr><td><strong>EVENTO</strong> (padrão)</td><td>Fato de negócio ocorreu. Ninguém espera resposta.</td><td>Assíncrono, desacoplado, resiliente</td><td>Crédito aprovado, multa gerada, lead criado, contrato assinado</td></tr>
+        <tr><td><strong>API</strong> (exceção)</td><td>Usuário humano espera resposta para continuar.</td><td>Síncrono, com timeout e fallback</td><td>Gerar proposta, simular preço, gerar link pagamento</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Princípios complementares</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Princípio</th><th>Implicação</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Event-Driven by Default</strong></td><td>Toda integração nova começa como evento. API só se justifica com humano esperando.</td></tr>
+        <tr><td><strong>Materialização local</strong></td><td>Dados externos chegam via evento e são armazenados no CRM. Vendedor nunca espera chamada síncrona para ver contexto.</td></tr>
+        <tr><td><strong>Operational vs Analytical</strong></td><td>BigQuery = analytics. CRM = operação. Insights do BigQuery viram eventos quando relevantes.</td></tr>
+        <tr><td><strong>CRM como participante, não hub</strong></td><td>Salesforce consome e publica no bus. Não centraliza integrações.</td></tr>
+        <tr><td><strong>IA sem lock-in</strong></td><td>IA Movida (customer-facing) e Agentforce (seller-facing) coexistem via eventos.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- SECTION 2: CAMADAS -->
+  <div class="section" id="camadas">
+    <h2>2. Visão de Camadas</h2>
+    <p>A arquitetura opera em 5 camadas distintas, cada uma com ownership, ferramentas e modelo operacional próprio.</p>
+
+    <pre>
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                 │
+│   CAMADA 1 — CANAIS OMNICHANNEL                                                │
+│   Web/App │ Portais │ WhatsApp │ Genesys │ IA Movida │ Parceiros               │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CAMADA 2 — MICROSSERVIÇOS MOVIDA (Entrada Padronizada)                       │
+│   ms-leads │ conversation-service │ Credit │ Fines │ Billing │ Ticket          │
+│   Cada serviço publica eventos no bus com schema padronizado                    │
+│                                                                                 │
+├═══════════════════════════════════════════════════════════════════════════════════╡
+│                                                                                 │
+│   CAMADA 3 — EVENT BUS CORPORATIVO (Google Cloud Pub/Sub)                      │
+│   Barramento central. Todos publicam e consomem aqui.                          │
+│   Ordenação │ Retenção │ DLQ │ Auto-scale │ IAM                                │
+│                                                                                 │
+├═══════════════════════════════════════════════════════════════════════════════════╡
+│                                                                                 │
+│   CAMADA 4 — INTEGRATION LAYER (Cloud Run / Cloud Functions)                   │
+│   Transformação de payload │ Validação │ Roteamento │ Publicação/Consumo       │
+│   Ponte bidirecional: GCP Pub/Sub ←→ Salesforce Pub/Sub API (gRPC)            │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CAMADA 5 — CRM OPERACIONAL (Salesforce)                                      │
+│   ┌──────────────────┐  ┌─────────────────────┐  ┌────────────────────────┐   │
+│   │     VENDAS       │  │   ATENDIMENTO       │  │     PÓS-VENDA         │   │
+│   │  Pipeline, Leads │  │   COMERCIAL         │  │     VISÃO 360         │   │
+│   │  Oportunidades   │  │   Filas, SLA,       │  │     Contratos,        │   │
+│   │  Propostas       │  │   Cadências         │  │     Cobranças (read)  │   │
+│   └──────────────────┘  └─────────────────────┘  └────────────────────────┘   │
+│                                                                                 │
+│   + Data Cloud (Identity Resolution / Perfil Unificado)                        │
+│   + Agentforce (IA seller-facing)                                              │
+│   + Marketing Cloud (Jornadas, Email, Push)                                    │
+│                                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   CAMADA ANALÍTICA (paralela) — BigQuery / Data Lake                           │
+│   Cópia de eventos (delay OK). Analytics, BI, ML.                              │
+│   Insight relevante → publica evento de volta no bus.                          │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+
+    <h3>Fluxo bidirecional</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Direção</th><th>O que flui</th><th>Mecanismo</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Inbound</strong> (→ CRM)</td><td>Fatos: lead criado, crédito aprovado, handoff de IA</td><td>Pub/Sub GCP → Cloud Run → SF Pub/Sub API → Platform Event → Automação</td></tr>
+        <tr><td><strong>Outbound</strong> (CRM →)</td><td>Mudanças: opp ganha, proposta gerada</td><td>CDC / PE → SF Pub/Sub API → Cloud Run → Pub/Sub GCP</td></tr>
+        <tr><td><strong>API</strong> (exceção)</td><td>Ações: gerar proposta, simular preço</td><td>Apex → API Gateway → Microsserviço Movida</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- SECTION 3: ONDE MEXE -->
+  <div class="section" id="onde-mexe">
+    <h2>3. Onde Mexe</h2>
+    <p>Cada camada tem seu ponto de configuração. Vendedor nunca sai do CRM. Dev Movida nunca entra no Salesforce.</p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Camada</th><th>Onde se configura</th><th>Exemplo de ação</th><th>Perfil</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Canais</strong></td><td>Plataforma de cada canal</td><td>Novo formulário, novo bot</td><td>Times de canal</td></tr>
+        <tr><td><strong>Microsserviços</strong></td><td>Repo + CI/CD Movida</td><td>Adicionar campo no payload</td><td><span class="badge badge-movida">Dev Movida</span></td></tr>
+        <tr><td><strong>Event Bus</strong></td><td>GCP Console → Pub/Sub</td><td>Criar topic, subscription, DLQ</td><td><span class="badge badge-movida">DevOps Movida</span></td></tr>
+        <tr><td><strong>Integration Layer</strong></td><td>GCP Console → Cloud Run</td><td>Deploy bridge, ajustar mapeamento</td><td><span class="badge badge-movida">Dev Movida</span></td></tr>
+        <tr><td><strong>CRM — Modelo</strong></td><td>SF Setup → Object Manager</td><td>Criar objeto, campo, layout</td><td><span class="badge badge-native">Admin SF</span></td></tr>
+        <tr><td><strong>CRM — Automações</strong></td><td>SF Setup → Flow Builder</td><td>Reagir a evento, distribuir lead</td><td><span class="badge badge-lowcode">Admin SF</span></td></tr>
+        <tr><td><strong>CRM — Integrações</strong></td><td>VS Code (Apex)</td><td>Callout para API síncrona</td><td><span class="badge badge-procode">Dev SF</span></td></tr>
+        <tr><td><strong>Data Cloud</strong></td><td>SF Setup → Data Cloud</td><td>Stream, identity resolution</td><td><span class="badge badge-native">Admin DC</span></td></tr>
+        <tr><td><strong>Marketing Cloud</strong></td><td>MC → Journey Builder</td><td>Jornada de comunicação</td><td>Mkt Ops</td></tr>
+        <tr><td><strong>Analytics</strong></td><td>GCP → BigQuery</td><td>Criar view, pipeline</td><td><span class="badge badge-movida">Data Eng</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-label">Fronteira clara</div>
+      <strong>Do Pub/Sub para baixo</strong> (microsserviços, canais) = Movida opera.<br>
+      <strong>Do Pub/Sub para cima</strong> (CRM, Data Cloud, Marketing Cloud) = SI Salesforce opera.<br>
+      A <strong>Integration Layer</strong> (Cloud Run) é a costura — operada pela Movida, com schema definido em conjunto.
+    </div>
+  </div>
+
+  <!-- SECTION 4: QUEM OPERA -->
+  <div class="section" id="quem-opera">
+    <h2>4. Quem Opera</h2>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Camada</th><th>Responsável (dia-a-dia)</th><th>Aprova mudanças</th><th>Consultado</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Salesforce CRM</strong></td><td>SI Salesforce (Leoo / parceiro)</td><td>Arquitetura Movida</td><td>BUs, Produto</td></tr>
+        <tr><td><strong>Data Cloud</strong></td><td>SI Salesforce</td><td>Arq. Movida + Data Eng</td><td>BUs</td></tr>
+        <tr><td><strong>Marketing Cloud</strong></td><td>Leoo / Mkt Ops</td><td>Marketing Movida</td><td>SI SF</td></tr>
+        <tr><td><strong>Agentforce</strong></td><td>SI Salesforce</td><td>Arq. Movida + Squad IA</td><td>BUs</td></tr>
+        <tr><td><strong>Event Bus (Pub/Sub)</strong></td><td>DevOps Movida</td><td>Arq. Movida</td><td>SI SF</td></tr>
+        <tr><td><strong>Integration Layer</strong></td><td>Dev Movida</td><td>Arq. Movida</td><td>SI SF</td></tr>
+        <tr><td><strong>BigQuery</strong></td><td>Data Eng Movida</td><td>Arq. Movida</td><td>SI SF</td></tr>
+        <tr><td><strong>Microsserviços</strong></td><td>Squads Movida (por domínio)</td><td>Arq. Movida</td><td>SI SF (se muda contrato)</td></tr>
+        <tr><td><strong>IA Movida</strong></td><td>Squad IA</td><td>Arq. Movida</td><td>SI SF</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Fronteira de responsabilidade nos eventos</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Quem publica</th><th>Quem define o contrato</th><th>Quem consome</th></tr></thead>
+      <tbody>
+        <tr><td>Microsserviço Movida</td><td>Arq. Movida (publisher define)</td><td>CRM (via Integration Layer)</td></tr>
+        <tr><td>CRM (CDC / Platform Event)</td><td>SI Salesforce (CRM define)</td><td>Sistemas Movida (via Integration Layer)</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="callout callout-warning">
+      <div class="callout-label">Ponto crítico</div>
+      O <strong>contrato do evento</strong> (schema, campos obrigatórios, SLA) é o artefato mais importante. Sem ele, nenhum desenvolvimento começa. É o principal entregável do Workshop de Event Mapping.
+    </div>
+  </div>
+
+  <!-- SECTION 5: NATIVO vs DEV -->
+  <div class="section" id="nativo-dev">
+    <h2>5. O que é Nativo vs O que Exige Dev</h2>
+
+    <h3>100% Nativo (configuração, zero código) <span class="badge badge-native">NATIVO</span></h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Capacidade</th><th>Produto</th><th>O que resolve</th></tr></thead>
+      <tbody>
+        <tr><td>Modelo de dados (objetos, campos, relacionamentos)</td><td>Sales Cloud</td><td>Estrutura de informação</td></tr>
+        <tr><td>Visões por BU (Record Types, Layouts)</td><td>Sales Cloud</td><td>Cada BU vê o relevante</td></tr>
+        <tr><td>Distribuição de leads (Assignment, Queues)</td><td>Sales Cloud</td><td>Lead na fila certa</td></tr>
+        <tr><td>Gestão territorial</td><td>Sales Cloud</td><td>Hierarquia de lojas/regiões</td></tr>
+        <tr><td>Deduplicação (Matching Rules)</td><td>Sales Cloud</td><td>Mesmo CPF ≠ dois leads</td></tr>
+        <tr><td>Pipeline e Forecast</td><td>Sales Cloud</td><td>Gestão comercial por BU</td></tr>
+        <tr><td>Reports e Dashboards</td><td>Sales Cloud</td><td>SLA, conversão, aging</td></tr>
+        <tr><td>Identity Resolution</td><td>Data Cloud</td><td>Unificar cliente cross-BU</td></tr>
+        <tr><td>Conector BigQuery</td><td>Data Cloud</td><td>Ingerir histórico sem ETL</td></tr>
+        <tr><td>CDC (publicar mudanças)</td><td>Plataforma SF</td><td>Replicar para fora sem código</td></tr>
+        <tr><td>Platform Events</td><td>Plataforma SF</td><td>Eventos de entrada/saída</td></tr>
+        <tr><td>Cadences (follow-up)</td><td>Sales Cloud</td><td>Follow-up automatizado</td></tr>
+        <tr><td>Notificações real-time</td><td>Plataforma SF</td><td>Alertar vendedor</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Low-Code (Flow Builder — Admin configura) <span class="badge badge-lowcode">LOW-CODE</span></h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Capacidade</th><th>O que resolve</th></tr></thead>
+      <tbody>
+        <tr><td>Reagir a evento e criar registro</td><td>Evento chega → CRM materializa dado</td></tr>
+        <tr><td>Monitorar SLA e escalar</td><td>Lead sem atendimento → alerta + redistribui</td></tr>
+        <tr><td>Notificar vendedor</td><td>Push no mobile/desktop</td></tr>
+        <tr><td>Enriquecer registro com contexto</td><td>Handoff IA → atualiza lead com resumo</td></tr>
+        <tr><td>Jornadas de comunicação</td><td>Evento → email/SMS ao cliente</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Pro-Code (desenvolvimento necessário) <span class="badge badge-procode">PRO-CODE</span></h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Capacidade</th><th>Quem</th><th>Stack</th><th>O que resolve</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Bridge bidirecional GCP ↔ SF</strong></td><td><span class="badge badge-movida">Dev Movida</span></td><td>Cloud Run + gRPC</td><td>Ponte entre buses</td></tr>
+        <tr><td><strong>Transformação de payload</strong></td><td><span class="badge badge-movida">Dev Movida</span></td><td>Cloud Run</td><td>Schema Movida → Schema SF</td></tr>
+        <tr><td><strong>Callouts API síncrona</strong></td><td><span class="badge badge-procode">Dev SF</span></td><td>Apex</td><td>Gerar proposta, simular preço</td></tr>
+        <tr><td><strong>UI customizada</strong></td><td><span class="badge badge-procode">Dev SF</span></td><td>LWC</td><td>Se componente nativo não atender</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Resumo visual</h3>
+    <pre>
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  70-80% NATIVO          │  15-20% LOW-CODE       │  5-10% PRO-CODE │
+    │  (configuração)         │  (Flow Builder)        │  (código)       │
+    │                         │                        │                 │
+    │  Modelo de dados        │  Processar eventos     │  Bridge GCP↔SF  │
+    │  Distribuição           │  Escalar SLA           │  Callouts API   │
+    │  Reports                │  Notificar vendedor    │  UI custom      │
+    │  Pipeline               │  Enriquecer dados      │  Transforms     │
+    │  Identity Resolution    │  Jornadas mkt          │                 │
+    │  CDC                    │                        │                 │
+    └─────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+  <!-- SECTION 6: MONITORA -->
+  <div class="section" id="monitora">
+    <h2>6. Onde Monitora</h2>
+    <p>Cada camada tem seu painel. Não existe painel único — cada time olha para seu domínio.</p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Camada</th><th>O que monitorar</th><th>Onde olhar</th><th>Quem</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CRM — Negócio</strong></td><td>Leads/dia, conversão, pipeline, SLA, aging</td><td>Reports &amp; Dashboards (SF)</td><td>Gestor BU</td></tr>
+        <tr><td><strong>CRM — Técnico</strong></td><td>Flow errors, consumo de eventos, limites API</td><td>SF Setup → Monitoring</td><td>Admin SF</td></tr>
+        <tr><td><strong>Platform Events</strong></td><td>Publicados vs consumidos, delivery failures</td><td>SF → PE Usage Metrics</td><td>Admin SF</td></tr>
+        <tr><td><strong>Data Cloud</strong></td><td>Ingestão, identity resolution, perfis</td><td>Data Cloud Monitoring</td><td>Admin DC</td></tr>
+        <tr><td><strong>Event Bus</strong></td><td>Messages pub/acked, DLQ count</td><td>GCP → Pub/Sub Monitoring</td><td>DevOps Movida</td></tr>
+        <tr><td><strong>Integration Layer</strong></td><td>Latência, error rate, 5xx</td><td>GCP → Cloud Run Metrics</td><td>DevOps Movida</td></tr>
+        <tr><td><strong>BigQuery</strong></td><td>Freshness, custos, slots</td><td>GCP → BQ Monitoring</td><td>Data Eng</td></tr>
+        <tr><td><strong>End-to-end</strong></td><td>Tempo: evento → dado no CRM</td><td>Correlação de timestamps</td><td>Arq. Movida</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Alertas críticos</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Sinal</th><th>Significado</th><th>Ação</th></tr></thead>
+      <tbody>
+        <tr><td>DLQ &gt; 0 mensagens</td><td>Evento não processado</td><td>Investigar payload / erro</td></tr>
+        <tr><td>Lead sem owner &gt; SLA</td><td>Gargalo no atendimento</td><td>Escalar / redistribuir</td></tr>
+        <tr><td>Flow Error Rate &gt; threshold</td><td>Automação quebrando</td><td>Admin SF investiga</td></tr>
+        <tr><td>Cloud Run 5xx &gt; 2%</td><td>Bridge com problema</td><td>DevOps reinicia / logs</td></tr>
+        <tr><td>Latência E2E &gt; SLA</td><td>Gargalo em algum hop</td><td>Identificar camada lenta</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="callout callout-info">
+      <div class="callout-label">Observabilidade por design</div>
+      Cada evento deve carregar um <strong>correlation ID</strong> (timestamp de origem) para rastreabilidade end-to-end.
+    </div>
+  </div>
+
+  <!-- SECTION 7: EVOLUI -->
+  <div class="section" id="evolui">
+    <h2>7. Como Evolui</h2>
+    <p>Arquitetura desenhada para evoluir por <strong>adição</strong>, sem refatoração estrutural.</p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Cenário</th><th>Muda no CRM</th><th>Muda no ecossistema Movida</th><th>Esforço</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Nova BU</strong></td><td>Record Type + Layout + Processo</td><td>Nada (mesmo evento, novo valor BU)</td><td>~1-2 semanas</td></tr>
+        <tr><td><strong>Novo canal</strong></td><td>Novo valor em picklist</td><td>Canal publica no ms-leads (mesmo contrato)</td><td>~1 semana</td></tr>
+        <tr><td><strong>Novo dado para 360</strong></td><td>Novo objeto + Flow consome evento</td><td>Novo topic + handler no Cloud Run</td><td>~2-3 semanas</td></tr>
+        <tr><td><strong>Nova API síncrona</strong></td><td>Apex callout + Named Credential</td><td>Novo endpoint no API Gateway</td><td>~1-2 semanas</td></tr>
+        <tr><td><strong>Service Cloud (futuro)</strong></td><td>Habilitar na mesma org</td><td>Eventos de ticket → Cases</td><td>Projeto incremental</td></tr>
+        <tr><td><strong>Novo agente IA</strong></td><td>Nada (consome mesmo evento de handoff)</td><td>Publica no mesmo topic</td><td>~0 no CRM</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Por que evolui sem refatoração?</h3>
+    <ul>
+      <li><strong>Desacoplamento via eventos</strong> — publisher não sabe quem consome</li>
+      <li><strong>Schema aditivo</strong> — campos opcionais sem breaking change</li>
+      <li><strong>Padrão repetível</strong> — "novo dado 360" = Topic → Cloud Run → PE → Flow → Objeto → Related List</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 8: MANTÉM -->
+  <div class="section" id="mantem">
+    <h2>8. Como Mantém</h2>
+
+    <h3>Governança de eventos (artefato central)</h3>
+    <p>Cada evento em produção precisa de <strong>contrato</strong> definindo: schema, publisher, consumers, SLA, retry/DLQ, versionamento.</p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tipo de mudança</th><th>Classificação</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr><td>Adicionar campo opcional</td><td>Non-breaking</td><td>Consumers ignoram</td></tr>
+        <tr><td>Remover campo obrigatório</td><td>Breaking</td><td>Novo versionamento (topic v2)</td></tr>
+        <tr><td>Mudar tipo de campo</td><td>Breaking</td><td>Novo versionamento</td></tr>
+        <tr><td>Adicionar valor a enum</td><td>Non-breaking</td><td>Consumer tolera desconhecidos</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Sustentação</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Atividade</th><th>Frequência</th><th>Quem</th></tr></thead>
+      <tbody>
+        <tr><td>Review de erros (Flow + DLQ)</td><td>Diário</td><td>Admin SF + DevOps Movida</td></tr>
+        <tr><td>Verificar limites API/eventos</td><td>Semanal</td><td>Admin SF</td></tr>
+        <tr><td>Métricas de negócio (conversão, SLA)</td><td>Semanal</td><td>Gestores BU</td></tr>
+        <tr><td>Review de event contracts</td><td>Sob demanda</td><td>Governance Board</td></tr>
+        <tr><td>Capacity planning</td><td>Trimestral</td><td>Arq. Movida + SF</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Ambientes</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ambiente</th><th>Salesforce</th><th>GCP</th></tr></thead>
+      <tbody>
+        <tr><td><strong>DEV</strong></td><td>Developer Sandbox</td><td>Projeto dev</td></tr>
+        <tr><td><strong>UAT</strong></td><td>Partial/Full Sandbox</td><td>Projeto staging</td></tr>
+        <tr><td><strong>PROD</strong></td><td>Production Org</td><td>Projeto prod</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- SECTION 9: CENÁRIOS -->
+  <div class="section" id="cenarios">
+    <h2>9. Cenários Conceituais (Benchmark)</h2>
+    <p>Exemplos genéricos de como empresas com modelos similares (fleet, rental, assinatura) integram CRM a event buses. Não prescrevem implementação — servem como referência de padrão.</p>
+
+    <div class="scenario">
+      <div class="scenario-label">Cenário A — Lead chega de canal digital</div>
+      <ol>
+        <li>Portal captura interesse → microsserviço padroniza dados mínimos</li>
+        <li>Publica <strong>evento</strong> no bus ("lead criou interesse")</li>
+        <li>Integration layer transforma e entrega ao CRM</li>
+        <li>CRM: dedup → cria lead → distribui → notifica vendedor</li>
+        <li>Vendedor atende dentro do SLA. Se estoura → escalação automática.</li>
+      </ol>
+      <p><strong>Regra aplicada:</strong> Lead "aconteceu" → EVENTO.</p>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-label">Cenário B — IA faz handoff para humano</div>
+      <ol>
+        <li>IA conversa com cliente (pré-qualificação, FAQ)</li>
+        <li>Decide handoff → publica <strong>evento</strong> com resumo, intenção, sentimento</li>
+        <li>CRM: encontra/cria lead → vincula histórico → cria tarefa → notifica vendedor</li>
+        <li>Vendedor lê contexto completo → responde com continuidade</li>
+      </ol>
+      <p><strong>Regra aplicada:</strong> Handoff "aconteceu" → EVENTO com contexto rico.</p>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-label">Cenário C — Vendedor gera proposta (ação síncrona)</div>
+      <ol>
+        <li>Vendedor clica "Gerar Proposta" no CRM</li>
+        <li>CRM chama <strong>API síncrona</strong> do serviço de propostas</li>
+        <li>Retorna PDF + valores → CRM atualiza registro</li>
+        <li>Vendedor envia ao cliente</li>
+      </ol>
+      <p><strong>Regra aplicada:</strong> Vendedor "precisa pedir agora" → API (exceção controlada).</p>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-label">Cenário D — CRM informa ecossistema (outbound)</div>
+      <ol>
+        <li>Vendedor fecha negócio no CRM</li>
+        <li>CRM publica automaticamente via <strong>CDC</strong> (zero código)</li>
+        <li>Cloud Run captura → transforma → publica no Pub/Sub GCP</li>
+        <li>Consumers (billing, contratos, BigQuery) consomem cada um no seu tempo</li>
+      </ol>
+      <p><strong>Regra aplicada:</strong> Fato aconteceu no CRM → EVENTO para fora.</p>
+    </div>
+
+    <div class="scenario">
+      <div class="scenario-label">Cenário E — Visão 360 (dados de outros domínios)</div>
+      <ol>
+        <li>Sistemas de domínio publicam <strong>eventos</strong> (multa, cobrança, ticket)</li>
+        <li>CRM materializa localmente como registros vinculados ao cliente</li>
+        <li>Vendedor abre ficha → vê tudo, sem esperar APIs externas</li>
+      </ol>
+      <p><strong>Regra aplicada:</strong> Pós-venda "aconteceu" → EVENTO → materializa. <strong>NÃO consulta via API.</strong></p>
+    </div>
+  </div>
+
+  <!-- SECTION 10: ADRs -->
+  <div class="section" id="adrs">
+    <h2>10. Decisões Arquiteturais (ADRs)</h2>
+    <p>Cada ADR documenta o <strong>porquê</strong> de uma decisão — princípios de design validados.</p>
+
+    <div class="adr-card">
+      <h4>ADR-001: Pub/Sub API (gRPC) via Cloud Run</h4>
+      <p><strong>Contexto:</strong> Movida opera Pub/Sub GCP. SF precisa consumir/publicar nesse bus.</p>
+      <p><strong>Decisão:</strong> Cloud Run como bridge bidirecional via SF Pub/Sub API (gRPC nativo, porta 7443).</p>
+      <p><strong>Descartados:</strong> MuleSoft (custo + redundância), Event Relay (só AWS), REST Callout (unidirecional).</p>
+      <p><strong>Trade-off:</strong> Dev custom (~3-4 sem), mas usa stack que DevOps Movida já domina.</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-002: CDC para Replicação, Platform Events para Integração</h4>
+      <p><strong>CDC</strong> = "o que mudou" → BigQuery, analytics (automático, zero código)</p>
+      <p><strong>Platform Events</strong> = "fato de negócio" → ação em sistema externo (payload controlado)</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-003: Materialização Local (não API on-demand)</h4>
+      <p><strong>Decisão:</strong> Dados externos chegam via evento e são armazenados localmente no CRM.</p>
+      <p><strong>Descartado:</strong> API on-demand (latência na tela, dependência de disponibilidade).</p>
+      <p><strong>Trade-off:</strong> Eventual consistency (30-60s) + storage cresce. Mas vendedor tem 0ms e CRM funciona offline.</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-004: Identity Resolution por CPF/CNPJ</h4>
+      <p><strong>Decisão:</strong> CPF (PF) e CNPJ (PJ) como chaves universais, resolvidos via Data Cloud.</p>
+      <p><strong>Premissa:</strong> CPF precisa estar presente e correto nos eventos. Se não, unificação falha.</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-005: Salesforce como Participante, não Hub</h4>
+      <p><strong>Decisão:</strong> SF é subscriber/publisher no bus. Não centraliza integrações.</p>
+      <p><strong>Consequência:</strong> Se trocar CRM amanhã, eventos continuam fluindo. Apenas consumer muda.</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-006: IA Movida (customer) + Agentforce (seller)</h4>
+      <p><strong>IA Movida:</strong> Conversa com cliente (LangGraph/MCPs) — pré-qualificação, handoff.</p>
+      <p><strong>Agentforce:</strong> Assiste vendedor no CRM — next-best-action, resumos.</p>
+      <p><strong>Integração:</strong> Via evento (ConversationHandoff). Sem acoplamento direto.</p>
+    </div>
+
+    <div class="adr-card">
+      <h4>ADR-007: Data Cloud — BigQuery (inicial) + Eventos (ongoing)</h4>
+      <p><strong>Carga inicial:</strong> BigQuery zero-copy connector (sem mover dados).</p>
+      <p><strong>Após go-live:</strong> Streaming via eventos do bus em tempo real.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 11: TRADE-OFFS -->
+  <div class="section" id="tradeoffs">
+    <h2>11. Trade-Offs e Transparência</h2>
+
+    <h3>Ganhamos vs Aceitamos</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ganho</th><th>Trade-off aceito</th></tr></thead>
+      <tbody>
+        <tr><td>Vendedor vê tudo em 0ms (dados locais)</td><td>Eventual consistency (30-60s de atraso)</td></tr>
+        <tr><td>CRM funciona com sistemas fora do ar</td><td>Storage cresce (dados materializados)</td></tr>
+        <tr><td>Bus neutro (sem lock-in)</td><td>Bridge exige manutenção</td></tr>
+        <tr><td>Visão 360 cross-BU</td><td>Depende de CPF correto nos canais</td></tr>
+        <tr><td>Evolução por adição</td><td>Setup inicial front-loaded (3-4 meses)</td></tr>
+        <tr><td>IA Movida + Agentforce</td><td>Duas plataformas de IA para governar</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>O que NÃO resolve</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Limitação</th><th>Caminho futuro</th></tr></thead>
+      <tbody>
+        <tr><td>Atendimento pós-venda (tickets complexos)</td><td>Service Cloud — projeto separado</td></tr>
+        <tr><td>Marketing avançado (jornadas multi-touch)</td><td>Fase 2 — após Data Cloud maduro</td></tr>
+        <tr><td>Inteligência preditiva (churn, LTV)</td><td>Fase 3 — Data Science + Einstein/Vertex</td></tr>
+        <tr><td>MDM (dados mestres)</td><td>Governança corporativa Movida</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>Perguntas difíceis</h3>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pergunta</th><th>Resposta</th></tr></thead>
+      <tbody>
+        <tr><td>"Por que não MuleSoft?"</td><td>Movida já opera Cloud Run. MuleSoft = custo + ferramenta sem valor incremental.</td></tr>
+        <tr><td>"E se trocar o Salesforce?"</td><td>Eventos fluem no Pub/Sub (bus neutro). Qualquer CRM substitui como consumer.</td></tr>
+        <tr><td>"Eventos se perdem?"</td><td>DLQ + retry exponencial + replay + alertas. Cada hop com fallback.</td></tr>
+        <tr><td>"Data Cloud obrigatório?"</td><td>Não no go-live. Sales Cloud funciona standalone. Data Cloud é paralelo.</td></tr>
+        <tr><td>"Consultar BigQuery direto?"</td><td>Não. BigQuery = analytics (latência/custo). Insights viram eventos.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- SECTION 12: WORKSHOPS -->
+  <div class="section" id="workshops">
+    <h2>12. Workshops Necessários</h2>
+    <p>De "arte do possível" → "especificação implementável". Cada workshop tem entregável concreto.</p>
+
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Workshop</th><th>Objetivo</th><th>Entregável</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1</strong></td><td>Event Mapping</td><td>Contratos de cada evento</td><td>Event Contracts assinados</td></tr>
+        <tr><td><strong>2</strong></td><td>Volumetria e Sizing</td><td>Números reais para licenciamento</td><td>Sizing doc</td></tr>
+        <tr><td><strong>3</strong></td><td>Handoff IA → Humano</td><td>Payload, UX vendedor, SLA</td><td>Spec funcional + mockup</td></tr>
+        <tr><td><strong>4</strong></td><td>Assignment &amp; Territory</td><td>Hierarquia lojas, distribuição</td><td>Regras documentadas</td></tr>
+        <tr><td><strong>5</strong></td><td>Comunicação Outbound</td><td>Fronteira MC vs MS-COMUNICAÇÃO</td><td>Mapa de canais</td></tr>
+        <tr><td><strong>6</strong></td><td>Data Cloud &amp; Identity</td><td>Schema BigQuery, identity rules</td><td>Plano de ingestão</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="callout callout-danger">
+      <div class="callout-label">Bloqueio</div>
+      <strong>Sem Workshop 1 (Event Mapping), nenhum desenvolvimento pode começar.</strong> O contrato do evento desbloqueia ambos os lados.
+    </div>
+
+    <h3>Sequência recomendada</h3>
+    <pre>
+    Semana 1-2          Semana 2-3          Semana 3-4          Semana 4+
+    ┌──────────┐       ┌──────────┐        ┌──────────┐       ┌──────────┐
+    │ W1: Event│       │ W2: Vol. │        │ W3: IA   │       │ W5: Comm │
+    │  Mapping │──────▶│  Sizing  │───┐    │  Handoff │       │ W6: DC   │
+    └──────────┘       └──────────┘   │    └──────────┘       └──────────┘
+                                      │    ┌──────────┐
+                                      └───▶│ W4: Terr.│
+                                           └──────────┘
+
+    ═══════════════════════════════════════════════════════════════════════
+    APÓS WORKSHOPS → Início do desenvolvimento com contratos definidos
+    </pre>
+  </div>
+
+</main>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+(function() {
+  const links = document.querySelectorAll('.sidebar-nav a[data-section]');
+  const sections = document.querySelectorAll('.section');
+
+  function showSection(id) {
+    sections.forEach(s => s.classList.remove('active'));
+    links.forEach(l => l.classList.remove('active'));
+
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
+
+    const activeLink = document.querySelector(`[data-section="${id}"]`);
+    if (activeLink) activeLink.classList.add('active');
+
+    // Close mobile sidebar
+    document.querySelector('.sidebar').classList.remove('open');
+
+    // Scroll to top of main content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  links.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const section = this.getAttribute('data-section');
+      showSection(section);
+      history.pushState(null, '', '#' + section);
+    });
+  });
+
+  // Handle URL hash on load
+  if (window.location.hash) {
+    const hash = window.location.hash.substring(1);
+    showSection(hash);
+  }
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', function() {
+    const hash = window.location.hash.substring(1) || 'cover';
+    showSection(hash);
+  });
+})();
+</script>
+
+</body>
+</html>
