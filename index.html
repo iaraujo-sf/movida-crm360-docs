@@ -743,52 +743,24 @@
     <div class="story-rule"><strong>Regra:</strong> Busca estoque = API (vendedora espera) | Lead/Agendamento = EVENTO | Confirmacao = Marketing Cloud</div>
   </div>
 
-  <pre>
-  ┌─────────┐      ┌──────────┐      ┌─────────────┐      ┌───────────┐      ┌────────────┐      ┌───────────┐
-  │  Paulo  │─────▶│Formulario│─────▶│  ms-leads   │─────▶│  Pub/Sub  │─────▶│  Cloud Run │─────▶│Sales Cloud│
-  │(interesse│      │Seminovos │      │(padroniza)  │      │   GCP     │      │(transform) │      │  (Lead)   │
-  └─────────┘      └──────────┘      └─────────────┘      └───────────┘      └────────────┘      └─────┬─────┘
-                                                                                                        │
-              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░  EVENTO  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
-                                                                                                        │
-  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┘
-  │
-  │   ┌───────────┐                    ┌─────────────────────────────────────────────────────────┐
-  └──▶│Agentforce │──▶ Vendedora SN    │  Vendedora ve:                                         │
-      │ (triagem) │    assignment      │   • Lead com modelo/ano/budget desejados               │
-      └───────────┘                    │   • Paulo ja e cliente RAC + CPA (Data Cloud!)         │
-                                       │   • Recomendacao inteligente de veiculos               │
-                                       └────────────────────────────────────────────────────┬────┘
-                                                                                            │
-                                                                  ╔══════════╗              │
-                                       Opcoes de veiculos ◀───────║ API SINC ║◀─────────────┘
-                                       em estoque                  ╚══════════╝
-                                            │                     (Vetor - busca estoque)
-                                            ▼
-                                       Vendedora envia opcoes
-                                       via WhatsApp ao Paulo
-                                            │
-                                            ▼
-  ┌─────────────┐      ┌───────────┐      ┌───────────────────────────────────────────────┐
-  │  Mkt Cloud  │◀─────│  Flow     │◀─────│ Paulo agenda visita a loja                    │
-  │(confirmacao)│      │(cria task │      │ Flow cria Token + Tarefa de agendamento       │
-  │ Email + WA  │      │ + evento) │      └───────────────────────────────────────────────┘
-  └─────────────┘      └───────────┘                                    EVENTO
-                                                                          │
-                                                                          ▼
-                                                                   Visita → Test drive
-                                                                          │
-                                                                          │   ╔══════════╗
-                                                                          └──▶║ API SINC ║──▶ Proposta
-                                                                              ╚══════════╝
-                                                                                    │
-  ┌─────────┐      ┌────────────┐                                                  │
-  │ Billing │◀─────│  Pub/Sub   │◀── CDC (OppWon) ─────────────────────────────────┘
-  │Contratos│      │    GCP     │◀── Cloud Run ◀── SF Pub/Sub API       EVENTO (CDC)
-  └─────────┘      └────────────┘
+  <img src="assets/jornada-seminovos.png" alt="Fluxo sistemico Jornada Seminovos — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
-  ─── EVENTO (lead, agendamento, confirmacao, CDC)   ═══ API (estoque Vetor + proposta)
-  </pre>
+  <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> Fluxo hipotetico para ilustrar o padrao de venda consultiva com componente presencial. A implementacao real depende de workshops com os times de Seminovos, integracao Vetor e operacao de loja.</p>
+
+    <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
+    <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
+      <li><strong>Ingestao (EVENTO):</strong> Paulo preenche formulario de interesse em veiculo (modelo, ano, budget). <code>ms-leads</code> normaliza e publica <code>LeadCreated</code> no Pub/Sub GCP. Cloud Run transforma e entrega ao Salesforce via gRPC — Lead criado com Record Type SN.</li>
+      <li><strong>Triagem e Assignment (CRM nativo):</strong> Agentforce realiza triagem e distribui para vendedora SN. Data Cloud revela que Paulo ja e cliente RAC + CPA — recomendacao inteligente de veiculos baseada em perfil.</li>
+      <li><strong>Busca de Estoque (API SINCRONA):</strong> Vendedora aciona integracao Vetor para buscar veiculos disponiveis em estoque. API sincrona porque a vendedora espera resultado na tela para montar opcoes ao cliente.</li>
+      <li><strong>Engajamento WhatsApp (canal):</strong> Vendedora envia opcoes de veiculos ao Paulo via WhatsApp (MobiGestor). Interacao consultiva ate cliente demonstrar interesse em visita presencial.</li>
+      <li><strong>Agendamento (EVENTO):</strong> Paulo agenda visita a loja. Flow cria Token + Tarefa de agendamento e dispara evento para Marketing Cloud. Confirmacao enviada por Email + WhatsApp automaticamente.</li>
+      <li><strong>Visita + Proposta (API SINCRONA):</strong> Apos test drive, vendedora gera proposta via callout sincrono. Proposta enviada, assinatura recebida.</li>
+      <li><strong>Fechamento e CDC (EVENTO):</strong> Opportunity fechada → CDC gera <code>OpportunityChangeEvent</code>. Cloud Run subscreve via SF Pub/Sub API, transforma e publica <code>opportunity-won</code>. Billing e Contratos consomem independentemente.</li>
+    </ol>
+
+    <p style="margin:0.8rem 0 0;"><strong>Padrao resultante:</strong> Jornada com 2 pontos sincronos (estoque Vetor + proposta) — justificados porque a vendedora precisa de resposta imediata em ambos. Todo o resto (lead, agendamento, confirmacao, CDC) e evento assincrono.</p>
+  </div>
 </div>
 
 <!-- ADRs -->
