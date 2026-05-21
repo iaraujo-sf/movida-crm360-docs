@@ -644,6 +644,22 @@
 
   <img src="assets/jornada-rac.jpg" alt="Fluxo sistemico Jornada RAC — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
+  <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> O fluxo abaixo e um exemplo hipotetico para ilustrar o padrao arquitetural. Nao temos profundidade dos processos internos da Movida para afirmar que esta sera a implementacao final — isso sera definido em workshops de detalhamento.</p>
+
+    <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
+    <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
+      <li><strong>Ingestao (EVENTO):</strong> Paulo submete formulario no portal RAC Empresas. O microsservico <code>ms-leads</code> normaliza o payload (CPF/CNPJ, BU, canal, loja destino) e publica um evento <code>LeadCreated</code> no topico Pub/Sub GCP. Nenhum sistema downstream precisa estar disponivel neste momento.</li>
+      <li><strong>Bridge Inbound (EVENTO):</strong> Cloud Run consome o evento via subscription, transforma o schema canonico para o formato de Platform Event do Salesforce, e publica via gRPC na Pub/Sub API (:7443). O evento <code>Lead_Created__e</code> e disparado dentro do Salesforce.</li>
+      <li><strong>Processamento CRM (nativo):</strong> Um Flow event-driven e acionado pelo Platform Event. Executa: deduplicacao por CPF/CNPJ, criacao do Lead com Record Type da BU, assignment rule (loja/disponibilidade), e notificacao push ao vendedor Vince.</li>
+      <li><strong>Enriquecimento de Credito (EVENTO):</strong> O Flow (ou trigger) solicita analise de credito publicando evento no bus. O <code>Credit Service</code> consome, processa, e publica <code>CreditAnalysisCompleted</code> de volta no Pub/Sub. O resultado percorre o caminho inverso (Cloud Run → SF Pub/Sub API → Flow) e materializa o score diretamente no Lead. Vince ve o resultado sem esperar — latencia tipica &lt; 30s.</li>
+      <li><strong>Proposta (API SINCRONA):</strong> Quando Vince decide gerar proposta, o Salesforce faz callout sincrono (Apex/Flow HTTP) ao Proposal Service (PDM). Aqui e API porque o vendedor <em>espera</em> o PDF na tela — nao faz sentido desacoplar.</li>
+      <li><strong>Fechamento e CDC (EVENTO):</strong> Vince marca Opportunity como "Fechado Ganho". O CDC (Change Data Capture) gera automaticamente um <code>OpportunityChangeEvent</code> — zero codigo. Cloud Run subscreve via gRPC, transforma e publica <code>opportunity-won</code> no Pub/Sub GCP. Consumers downstream (Billing, Contratos) reagem de forma independente.</li>
+    </ol>
+
+    <p style="margin:0.8rem 0 0;"><strong>Padrao resultante:</strong> 5 dos 6 hops sao <em>evento</em> (assincrono, desacoplado, resiliente). Apenas 1 hop e <em>API sincrona</em> — exatamente onde o usuario humano espera resposta imediata.</p>
+  </div>
+
   <div class="story" data-icon="&#128241;">
     <div class="story-label">Jornada CPA — WhatsApp</div>
     <div class="story-title">Paulo volta pelo WhatsApp querendo assinar um carro</div>
