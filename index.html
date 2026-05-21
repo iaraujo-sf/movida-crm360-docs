@@ -437,22 +437,22 @@
   <table>
     <thead><tr><th>Camada</th><th>Responsavel (dia-a-dia)</th><th>Aprova</th><th>Consultado</th></tr></thead>
     <tbody>
-      <tr><td><strong>Salesforce CRM</strong></td><td>SI Salesforce (Leoo/parceiro)</td><td>Arq. Movida</td><td>BUs</td></tr>
-      <tr><td><strong>Data Cloud</strong></td><td>SI Salesforce</td><td>Arq. + Data Eng</td><td>BUs</td></tr>
-      <tr><td><strong>Marketing Cloud</strong></td><td>Leoo / Mkt Ops</td><td>Mkt Movida</td><td>SI SF</td></tr>
-      <tr><td><strong>Agentforce</strong></td><td>SI Salesforce</td><td>Arq. + Squad IA</td><td>BUs</td></tr>
-      <tr><td><strong>Event Bus</strong></td><td>DevOps Movida</td><td>Arq. Movida</td><td>SI SF</td></tr>
-      <tr><td><strong>Integration Layer</strong></td><td>Dev Movida</td><td>Arq. Movida</td><td>SI SF</td></tr>
-      <tr><td><strong>BigQuery</strong></td><td>Data Eng</td><td>Arq. Movida</td><td>SI SF</td></tr>
-      <tr><td><strong>Microsservicos</strong></td><td>Squads (por dominio)</td><td>Arq. Movida</td><td>SI SF</td></tr>
-      <tr><td><strong>IA Movida</strong></td><td>Squad IA</td><td>Arq. Movida</td><td>SI SF</td></tr>
+      <tr><td><strong>Salesforce CRM</strong></td><td>LEOO</td><td>Arq. Movida</td><td>BUs</td></tr>
+      <tr><td><strong>Data Cloud</strong></td><td>LEOO</td><td>Arq. + Data Eng</td><td>BUs</td></tr>
+      <tr><td><strong>Marketing Cloud</strong></td><td>LEOO / Mkt Ops</td><td>Mkt Movida</td><td>LEOO</td></tr>
+      <tr><td><strong>Agentforce</strong></td><td>LEOO</td><td>Arq. + Squad IA</td><td>BUs</td></tr>
+      <tr><td><strong>Event Bus</strong></td><td>DevOps Movida</td><td>Arq. Movida</td><td>LEOO</td></tr>
+      <tr><td><strong>Integration Layer</strong></td><td>Dev Movida</td><td>Arq. Movida</td><td>LEOO</td></tr>
+      <tr><td><strong>BigQuery</strong></td><td>Data Eng</td><td>Arq. Movida</td><td>LEOO</td></tr>
+      <tr><td><strong>Microsservicos</strong></td><td>Squads (por dominio)</td><td>Arq. Movida</td><td>LEOO</td></tr>
+      <tr><td><strong>IA Movida</strong></td><td>Squad IA</td><td>Arq. Movida</td><td>LEOO</td></tr>
     </tbody>
   </table>
   </div>
 
   <div class="callout callout-warning">
     <div class="callout-label">Artefato critico</div>
-    O <strong>contrato do evento</strong> e definido por quem publica. Se o CRM consome evento de ms-leads, a Arq. Movida define o schema. Se sistemas Movida consomem CDC do CRM, SI SF define. A Integration Layer traduz entre os dois mundos.
+    O <strong>contrato do evento</strong> e definido por quem publica. Se o CRM consome evento de ms-leads, a Arq. Movida define o schema. Se sistemas Movida consomem CDC do CRM, LEOO define. A Integration Layer traduz entre os dois mundos.
   </div>
 </div>
 
@@ -1012,7 +1012,7 @@
       <li>Nao sugerir SF como hub/substituto do bus ou lake</li>
       <li>Nao mencionar MuleSoft proativamente (ja descartado)</li>
       <li>Nao prometer fields/schemas (nivel arte do possivel)</li>
-      <li>Cuidado com parceiro LEO — alinhar como complementar, nao concorrente</li>
+      <li>Cuidado com parceiro LEOO — alinhar como complementar, nao concorrente</li>
     </ul>
   </div>
 
