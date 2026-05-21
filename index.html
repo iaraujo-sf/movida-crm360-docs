@@ -642,32 +642,7 @@
     <div class="story-rule"><strong>Regra de ouro:</strong> Lead/Credito = EVENTO | Proposta = API | Venda fechada = EVENTO (CDC)</div>
   </div>
 
-  <pre>
-  ┌─────────┐      ┌──────────┐      ┌─────────────┐      ┌───────────┐      ┌────────────┐      ┌──────────┐
-  │  Paulo  │─────▶│  Portal  │─────▶│  ms-leads   │─────▶│  Pub/Sub  │─────▶│  Cloud Run │─────▶│Sales Cloud│
-  │ (portal)│      │RAC Empres│      │(padroniza)  │      │   GCP     │      │(transform) │      │  (Lead)  │
-  └─────────┘      └──────────┘      └─────────────┘      └───────────┘      └────────────┘      └─────┬────┘
-                                                                                                        │
-              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░  EVENTO  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│
-                                                                                                        │
-  ┌─────────┐      ┌──────────┐      ┌─────────────┐      ┌───────────┐      ┌────────────┐            │
-  │ Credit  │◀─ ─ ─│  Pub/Sub │◀─ ─ ─│  ms-leads   │      │   Flow    │◀─────│  Platform  │◀───────────┘
-  │ Service │      │   GCP    │      │(solicita)   │      │(atualiza) │      │   Event    │
-  └────┬────┘      └──────────┘      └─────────────┘      └───────────┘      └────────────┘
-       │                                                          │
-       │  ░░ EVENTO (CreditAnalysisCompleted) ░░                  ▼
-       └──────────────────────────────────────────────────▶ Vince ve score no Lead
-                                                                  │
-                                                                  │   ╔══════════╗
-  ┌─────────┐      ┌────────────┐                                 └──▶║ API SINC ║──▶ Proposal Service (PDM)
-  │ Billing │◀──── │  Pub/Sub   │◀──── CDC (OpportunityWon)           ╚══════════╝         │
-  │Contratos│      │    GCP     │                                                           ▼
-  └─────────┘      └────────────┘◀──── Cloud Run ◀──── SF Pub/Sub API ◀──── Vince fecha Opp
-                                                                                    │
-              ░░░░░░░░░░░░░░░░░░░░░░░░░░░░  EVENTO (CDC)  ░░░░░░░░░░░░░░░░░░░░░░░░░│
-
-  ─── EVENTO (assincrono, desacoplado)        ═══ API (sincrono, vendedor espera)
-  </pre>
+  <img src="assets/jornada-rac.jpg" alt="Fluxo sistemico Jornada RAC — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
   <div class="story" data-icon="&#128241;">
     <div class="story-label">Jornada CPA — WhatsApp</div>
