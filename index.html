@@ -676,42 +676,23 @@
     <div class="story-rule"><strong>Cross-sell:</strong> Vendedora ve historico RAC porque Data Cloud unificou Paulo por CPF.</div>
   </div>
 
-  <pre>
-  ┌─────────┐      ┌──────────┐      ┌─────────────┐      ┌───────────┐      ┌────────────┐
-  │  Paulo  │─────▶│ WhatsApp │─────▶│  IA Movida  │─────▶│conversation│─────▶│  Pub/Sub   │
-  │(WhatsApp│      │MobiGestor│      │(LangGraph)  │      │  service   │      │    GCP     │
-  └─────────┘      └──────────┘      └─────────────┘      └────────────┘      └──────┬─────┘
-                                        │ conversa                                     │
-                                        │ qualifica                    EVENTO           │
-                                        │ decide handoff     (ConversationHandoff)     │
-                                        ▼                                              ▼
-                                   ┌──────────┐                                 ┌────────────┐
-                                   │ Contexto │ resumo, intencao,               │  Cloud Run │
-                                   │   rico   │ sentimento, historico           │(transform) │
-                                   └──────────┘                                 └──────┬─────┘
-                                                                                       │
-  ┌─────────────────────────────────────────────────────────────────────────────────────┘
-  │
-  ▼
-  ┌────────────┐      ┌───────────┐      ┌──────────────────────────────────────────────┐
-  │  Platform  │─────▶│   Flow    │─────▶│ Vendedora ve:                                │
-  │   Event    │      │           │      │  • Lead atualizado com resumo IA             │
-  └────────────┘      │ 1.Find/   │      │  • Historico completo da conversa            │
-                      │   Create  │      │  • Paulo ja e cliente RAC (Data Cloud!)      │
-                      │ 2.Enrich  │      │  • Recomendacao: Pulse 35m + condutor adic.  │
-                      │ 3.Notify  │      └──────────────────────────────────────────────┘
-                      └───────────┘                          │
-                                                             │   ╔══════════╗
-                                                             └──▶║ API SINC ║──▶ Proposal Service
-                                                                 ╚══════════╝         │
-                                                                                      ▼
-  ┌─────────────┐     EVENTO (CDC)      ┌───────────┐                         Proposta enviada
-  │  Mkt Cloud  │◀──── (120d antes) ────│Scheduled  │                         Assinatura recebida
-  │(renovacao)  │                       │   Flow    │
-  └─────────────┘                       └───────────┘
+  <img src="assets/jornada-cpa.png" alt="Fluxo sistemico Jornada CPA WhatsApp — EVENTO vs API" style="width:100%; max-width:900px; border-radius:8px; margin:1.2rem 0; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
-  ─── EVENTO (todo o fluxo de handoff)       ═══ API (somente gerar proposta)
-  </pre>
+  <div style="background:#f8f9fa; border-left:4px solid #6c757d; padding:1rem 1.2rem; margin:1rem 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
+    <p style="margin:0 0 0.8rem; color:#6c757d; font-style:italic;"><strong>Disclaimer:</strong> Fluxo hipotetico para ilustrar o padrao de handoff IA → humano. A implementacao real depende de workshops com os times de IA, CRM e canais da Movida.</p>
+
+    <p style="margin:0 0 0.6rem;"><strong>Decomposicao tecnica do fluxo:</strong></p>
+    <ol style="margin:0; padding-left:1.4rem; line-height:1.7;">
+      <li><strong>Conversacao IA (canal):</strong> Paulo inicia conversa pelo WhatsApp via MobiGestor. A <code>IA Movida</code> (LangGraph/MCPs) conduz a conversa: qualifica intencao, responde FAQ, recomenda modelo (Pulse). Quando identifica necessidade de handoff humano, encerra a interacao autonoma.</li>
+      <li><strong>Handoff (EVENTO):</strong> O <code>conversation-service</code> empacota contexto rico (resumo, intencao, sentimento, historico completo) e publica evento <code>ConversationHandoff</code> no Pub/Sub GCP. A IA nao precisa saber quem vai receber — desacoplamento total.</li>
+      <li><strong>Bridge Inbound (EVENTO):</strong> Cloud Run consome, transforma para schema de Platform Event SF, e publica via gRPC. O evento dispara dentro do Salesforce como <code>Conversation_Handoff__e</code>.</li>
+      <li><strong>Processamento CRM (nativo):</strong> Flow event-driven executa: busca Lead por CPF (find/create), enriquece com resumo IA e historico, e dispara notificacao push a vendedora. Data Cloud resolve identidade — revela que Paulo ja e cliente RAC.</li>
+      <li><strong>Proposta (API SINCRONA):</strong> Vendedora negocia (Pulse 35 meses + condutor adicional) e aciona Proposal Service via callout sincrono. Proposta enviada, assinatura recebida.</li>
+      <li><strong>Renovacao (EVENTO agendado):</strong> Scheduled Flow monitora contratos CPA com vencimento em 120 dias. Ao disparar, aciona Marketing Cloud (Journey Builder) para envio automatico de comunicacao de renovacao — sem intervencao humana.</li>
+    </ol>
+
+    <p style="margin:0.8rem 0 0;"><strong>Padrao resultante:</strong> Todo o fluxo de handoff e assincrono (evento). A IA nao conhece o CRM, o CRM nao conhece a IA — o bus os conecta. API sincrona aparece apenas na geracao de proposta.</p>
+  </div>
 
   <div class="story" data-icon="&#128666;">
     <div class="story-label">Jornada GTF</div>
