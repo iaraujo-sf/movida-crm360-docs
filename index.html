@@ -218,6 +218,7 @@
       <li><a href="#" data-section="adrs">Decisoes (ADRs)</a></li>
       <li class="nav-section-label">Estrategia</li>
       <li><a href="#" data-section="ea-analysis">EA Account Analysis</a></li>
+      <li><a href="#" data-section="proximos-passos">Proximos Passos</a></li>
     </ul>
   </nav>
   <div class="sidebar-footer">Confidencial — Uso Interno<br>v4.0 · Maio 2026</div>
@@ -1117,32 +1118,184 @@
   </table>
   </div>
 
-  <h3>6. Perguntas em Aberto</h3>
-  <p>Pontos que precisamos explorar juntos para evoluir da "arte do possivel" para especificacao implementavel:</p>
-  <ol>
-    <li><strong>Qual e o tempo medio entre lead chegar e primeiro contato hoje? Existe medicao?</strong> — Dimensiona o valor do SLA automatico.</li>
-    <li><strong>Quando a IA faz handoff, o que acontece com o contexto da conversa?</strong> — Define o payload do evento de handoff.</li>
-    <li><strong>Ja houve tentativa de cross-sell entre BUs? O que impediu?</strong> — Valida a oportunidade de identity resolution.</li>
-    <li><strong>O ms-leads publica em formato canonico ou cada canal tem schema proprio?</strong> — Determina complexidade da transform layer.</li>
-    <li><strong>Qual o modelo operacional desejado? Time interno de Admin SF ou 100% via LEOO?</strong> — Define enablement e transferencia de conhecimento.</li>
-  </ol>
+</div>
 
-  <h3>7. Research Opportunities</h3>
-  <p>Gaps de informacao que fortaleceriam esta analise em workshops subsequentes:</p>
+<!-- PROXIMOS PASSOS -->
+<div class="section" id="proximos-passos">
+  <h2>Proximos Passos</h2>
+  <p>Este documento apresenta a <strong>arte do possivel</strong>. Para evoluir para uma especificacao implementavel, precisamos aprofundar nosso entendimento em 5 areas-chave — capturando cenarios reais que validem (ou ajustem) os padroes propostos aqui.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-label">Principio</div>
+    Cada area abaixo lista as perguntas que precisam ser respondidas e os interlocutores ideais. O formato (reuniao, async, documento compartilhado) fica a criterio de voces — o importante e que as respostas existam antes de especificar.
+  </div>
+
+  <!-- AREA 1 -->
+  <div class="adr-card">
+    <h4>1. Event Mapping & Schema Discovery</h4>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Objetivo</strong></td><td>Mapear todos os eventos existentes no Pub/Sub que o CRM precisa consumir/produzir, validar schemas e definir contratos de integracao</td></tr>
+        <tr><td><strong>Estimativa</strong></td><td>~2h de conversas</td></tr>
+        <tr><td><strong>Interlocutores</strong></td><td>Arquitetos Movida + Tech Leads dos microsservicos (ms-leads, conversation-service, credit-service) + LEOO (arquiteto de integracao)</td></tr>
+        <tr><td><strong>Output</strong></td><td>Catalogo de eventos com: topic, schema (JSON), publisher, consumer esperado (SF), SLA de entrega, volume estimado/dia</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Perguntas que precisam ser respondidas:</strong></p>
+    <ol>
+      <li>Quais topics existem hoje no Pub/Sub que sao relevantes para o CRM? Listar <em>todos</em> — nao apenas os citados neste documento.</li>
+      <li>O <code>ms-leads</code> publica em formato canonico unico ou cada canal (WhatsApp, portal, parceiro, IA) tem schema diferente? Se canonico, qual o schema exato (campos, tipos, obrigatoriedade)?</li>
+      <li>O evento <code>LeadCreated</code> ja carrega atributos de BU (RAC/CPA/GTF/SN) ou a classificacao acontece downstream?</li>
+      <li>Qual o payload exato do <code>ConversationHandoff</code>? Carrega resumo da conversa, score de qualificacao, intent detectado, historico de mensagens?</li>
+      <li>O <code>CreditAnalysisCompleted</code> publica resultado (aprovado/reprovado/condicional) + limites? Qual a latencia tipica entre request e resultado?</li>
+      <li>Existe versionamento formal de schemas (schema registry)? Como lidam com evolucao (backward-compatible only ou permitem breaking com novo topic)?</li>
+      <li>Qual o volume diario por topic? Picos (ex: campanha marketing dispara 5x o volume normal)?</li>
+      <li>DLQ: qual a politica atual? Retry automatico? Alerta? Reprocessamento manual? Alguem monitora diariamente?</li>
+      <li>Existe correlacao entre eventos (ex: mesmo <code>correlation_id</code> ligando LeadCreated → CreditAnalysis → ProposalGenerated)? Como rastrear a jornada completa de um lead pelo bus?</li>
+      <li>Quais eventos o CRM precisaria <em>publicar de volta</em> para o ecossistema? (ex: LeadConverted, OpportunityWon, VisitScheduled)</li>
+    </ol>
+  </div>
+
+  <!-- AREA 2 -->
+  <div class="adr-card">
+    <h4>2. Jornadas Reais por BU (Processo Operacional)</h4>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Objetivo</strong></td><td>Capturar o processo real (as-is) de cada BU do lead ate conversao, identificar pontos de dor e validar os fluxos propostos neste documento</td></tr>
+        <tr><td><strong>Estimativa</strong></td><td>~1.5h por BU (RAC, CPA, GTF, SN)</td></tr>
+        <tr><td><strong>Interlocutores</strong></td><td>Gestor comercial da BU + 1-2 vendedores senior (quem vive o dia-a-dia) + Coordenador de operacao de lojas + LEOO (consultor funcional)</td></tr>
+        <tr><td><strong>Output</strong></td><td>Mapa de processo as-is por BU com: etapas, sistemas usados, tempo medio por etapa, pontos de dor, handoffs manuais</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Perguntas que precisam ser respondidas:</strong></p>
+    <ol>
+      <li>Quando um lead chega (por qualquer canal), qual e a sequencia exata de acoes que o vendedor executa hoje? Quais sistemas abre, em que ordem, o que digita onde?</li>
+      <li>Qual o tempo medio entre lead chegar e primeiro contato? Existe medicao? Se nao, qual a percepcao? Varia por canal de origem?</li>
+      <li>Quantas vezes o vendedor precisa alternar entre sistemas durante um atendimento? Quais sao esses sistemas?</li>
+      <li>Existe processo de qualificacao do lead (BANT, scoring, criterios de descarte)? E formal ou cada vendedor decide?</li>
+      <li>Como funciona a atribuicao de leads? Por regiao? Por disponibilidade? Round-robin? O gestor distribui manualmente?</li>
+      <li>O que acontece quando um lead nao e atendido no prazo? Existe escalacao? Reatribuicao? Ou simplesmente se perde?</li>
+      <li>No caso de <strong>RAC</strong>: qual o ciclo (estimado ~24h)? O lead precisa de proposta/simulacao antes de converter? O PDM e usado em todos os casos?</li>
+      <li>No caso de <strong>CPA</strong>: como funciona o processo de renovacao? Existe automacao (alerta N dias antes do vencimento)? Quem dispara — sistema ou gestor?</li>
+      <li>No caso de <strong>GTF</strong>: o ciclo longo (~60-90d) — como o vendedor acompanha? Existe pipeline visual? Como sabe que deals estao esfriando?</li>
+      <li>No caso de <strong>Seminovos</strong>: como a vendedora busca estoque hoje (Vetor)? Quanto tempo leva? O que acontece se o veiculo e vendido entre a busca e o fechamento?</li>
+      <li>Existe algum processo de cross-sell entre BUs hoje? (Ex: cliente RAC que poderia virar CPA). Se nao, por que nao? Falta visibilidade? Falta incentivo?</li>
+      <li>Quais relatorios/dashboards os gestores usam hoje para acompanhar a operacao comercial? De onde vem esses dados?</li>
+    </ol>
+  </div>
+
+  <!-- AREA 3 -->
+  <div class="adr-card">
+    <h4>3. IA & Handoff (Conversacional → Humano)</h4>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Objetivo</strong></td><td>Definir o contrato exato de handoff entre IA Movida e CRM, incluindo contexto transferido, criterios de escalacao e experiencia do vendedor ao receber</td></tr>
+        <tr><td><strong>Estimativa</strong></td><td>~1.5h de conversas</td></tr>
+        <tr><td><strong>Interlocutores</strong></td><td>Tech Lead IA (LangGraph/MCPs) + Product Owner IA + Arquiteto Movida + LEOO (arquiteto CRM)</td></tr>
+        <tr><td><strong>Output</strong></td><td>Contrato de handoff (campos, formato, SLA) + criterios de escalacao + wireframe conceitual da experiencia do vendedor</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Perguntas que precisam ser respondidas:</strong></p>
+    <ol>
+      <li>Quais criterios a IA usa para decidir que precisa de handoff para humano? (Score minimo? Intent especifico? Cliente pediu? Timeout?)</li>
+      <li>Quando o handoff acontece, quais dados a IA ja coletou? (Nome, CPF, BU de interesse, veiculo, regiao, orcamento, urgencia, historico de conversa?)</li>
+      <li>O handoff e sincrono (vendedor precisa assumir em tempo real no WhatsApp) ou assincrono (lead e criado e vendedor liga depois)?</li>
+      <li>Existe classificacao de urgencia no handoff? (Ex: "cliente pronto para fechar agora" vs "pesquisando para daqui 2 meses")</li>
+      <li>O que acontece com o canal (WhatsApp via MobiGestor) apos handoff? A IA sai da conversa? O vendedor responde pelo mesmo canal? Ou muda para telefone?</li>
+      <li>Qual o roadmap da IA para os proximos 6-12 meses? Mais canais? Mais autonomia (fechar sem humano)? Atendimento pos-venda?</li>
+      <li>Existe cenario de "handoff reverso" — vendedor devolve para IA? (Ex: cliente desistiu, reengajar via bot em 30 dias)</li>
+      <li>Como medir sucesso do handoff? Metricas: tempo ate primeiro contato humano pos-handoff, taxa de conversao de leads com handoff vs sem, satisfacao do vendedor com contexto recebido?</li>
+      <li>O Agentforce (assistente do vendedor) poderia consumir o resumo da IA para sugerir next-best-action? Qual formato ideal para isso?</li>
+    </ol>
+  </div>
+
+  <!-- AREA 4 -->
+  <div class="adr-card">
+    <h4>4. Volumetria, Sizing & Governanca</h4>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Objetivo</strong></td><td>Levantar numeros reais para sizing de licenciamento, limites de plataforma e definir modelo de governanca operacional do CRM</td></tr>
+        <tr><td><strong>Estimativa</strong></td><td>~1.5h de conversas</td></tr>
+        <tr><td><strong>Interlocutores</strong></td><td>Arquiteto Movida + Gestor de operacao + Dados/BI (quem tem numeros) + LEOO (sizing) + Salesforce (Account Executive para licenciamento)</td></tr>
+        <tr><td><strong>Output</strong></td><td>Planilha de sizing (usuarios, volumes, storage) + modelo operacional (quem faz o que) + governanca de mudancas</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Perguntas que precisam ser respondidas:</strong></p>
+    <ol>
+      <li>Quantos leads/mes por BU? (Total ~22K estimado — precisamos o breakdown: RAC x, CPA y, GTF z, SN w)</li>
+      <li>Quantos usuarios simultaneos operarao o CRM? Quantos vendedores por BU? Quantos gestores? Quantos admins?</li>
+      <li>Qual o pico de volume? (Ex: Black Friday, campanha nacional, lancamento de produto — multiplicador sobre a media?)</li>
+      <li>Quantas lojas? Hierarquia: loja → regiao → diretoria? Quantos niveis?</li>
+      <li>Existe CRM hoje? Qual? Desde quando? Satisfacao? Se sim: migrar dados historicos ou comecar greenfield?</li>
+      <li>Qual o modelo operacional desejado? Admin SF interno (quantos)? 100% LEOO? Hibrido com transferencia progressiva?</li>
+      <li>Quem aprova mudancas no CRM (novo campo, novo Flow, nova integracao)? Existe governance board ou cada BU decide independente?</li>
+      <li>Qual a expectativa de SLA de resposta da bridge (evento publicado → materializado no CRM)? &lt;2s? &lt;5s? &lt;30s?</li>
+      <li>MS-COMUNICACAO: quais canais ja governa (SMS, email, push, WhatsApp)? Quais templates existem? Qual a fronteira desejada entre MS-COMUNICACAO e Marketing Cloud?</li>
+      <li>Integracao PDM: API e REST, gRPC ou SOAP? Autenticacao? Latencia tipica? Rate limits?</li>
+      <li>Integracao Vetor (estoque Seminovos): mesma pergunta — protocolo, autenticacao, latencia, cache possivel?</li>
+      <li>Existe budget/timeline ja definido para go-live? Constraint externa (regulatoria, fiscal, contratual)?</li>
+    </ol>
+  </div>
+
+  <!-- AREA 5 -->
+  <div class="adr-card">
+    <h4>5. Identity Resolution & Visao 360 (Data Cloud)</h4>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Aspecto</th><th>Detalhe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Objetivo</strong></td><td>Definir como unificar identidade do cliente entre BUs (CPF/CNPJ) e quais dados compoem a visao 360 do vendedor</td></tr>
+        <tr><td><strong>Estimativa</strong></td><td>~1.5h de conversas</td></tr>
+        <tr><td><strong>Interlocutores</strong></td><td>Arquiteto de dados Movida + DBA/responsavel por MDM + Compliance/LGPD + LEOO (Data Cloud specialist)</td></tr>
+        <tr><td><strong>Output</strong></td><td>Modelo de identity resolution (match rules) + lista de dados que compoem a visao 360 + requisitos LGPD</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Perguntas que precisam ser respondidas:</strong></p>
+    <ol>
+      <li>Hoje, um mesmo CPF pode existir em quantos sistemas diferentes? Existe alguma chave universal ou cada sistema tem ID proprio?</li>
+      <li>Como tratar PF vs PJ do mesmo individuo? (Paulo CPF como cliente RAC + Paulo CNPJ como gestor de frota GTF — e o mesmo "cliente"?)</li>
+      <li>Qual a qualidade do dado de CPF/CNPJ na entrada? Taxa de erro/incompletude? O ms-leads valida (Receita Federal, Neoway)?</li>
+      <li>Quais dados compoem a "visao 360" ideal para o vendedor? (Historico de interacoes, contratos ativos, multas pendentes, score de credito, ticket medio, LTV?)</li>
+      <li>De onde vem cada dado da visao 360? Qual sistema e source-of-truth para cada atributo?</li>
+      <li>Qual a politica de retencao? Dados de leads nao convertidos — manter por quanto tempo? Dado financeiro — ate quando?</li>
+      <li>LGPD: existe hoje gestao de consentimento (opt-in/opt-out)? Quem e o DPO? O MS-COMUNICACAO ja governa isso ou e manual?</li>
+      <li>O Neoway e usado apenas para GTF (CNPJ) ou tambem para enriquecimento PF? Qual refresh rate dos dados?</li>
+      <li>Data Cloud: existe interesse em segmentacao (clusters de clientes) alem da identity resolution? (Ex: "clientes com potencial de upgrade RAC → CPA")</li>
+      <li>BigQuery ja consome dados de quais sources? O CRM deve alimentar BigQuery (CDC → BQ) ou BigQuery alimenta o CRM? Ou ambos?</li>
+    </ol>
+  </div>
+
+  <!-- SEQUENCIA SUGERIDA -->
+  <h3>Dependencias entre areas</h3>
   <div class="table-wrap">
   <table>
-    <thead><tr><th>O que pesquisar</th><th>Fonte</th><th>Valor</th></tr></thead>
+    <thead><tr><th>Area</th><th>Depende de</th><th>Desbloqueia</th></tr></thead>
     <tbody>
-      <tr><td>Volumetria real por BU (CPA, GTF, SN)</td><td>Dados internos (times de BU)</td><td>Sizing de licenciamento</td></tr>
-      <tr><td>Schema do evento LeadCreated</td><td>Time de engenharia</td><td>Define transform layer da bridge</td></tr>
-      <tr><td>Payload do ConversationHandoff</td><td>Time IA / conversation-svc</td><td>Campos a materializar no Lead</td></tr>
-      <tr><td>API spec do PDM (REST? gRPC?)</td><td>Time PDM</td><td>Define callout (Apex vs Flow HTTP)</td></tr>
-      <tr><td>Hierarquia de lojas</td><td>Time de operacao</td><td>Territory Management vs custom</td></tr>
-      <tr><td>CRM atual (se existe)</td><td>Leandro/stakeholders</td><td>Migracao vs greenfield</td></tr>
-      <tr><td>MS-COMUNICACAO: canais e templates</td><td>Time comunicacao</td><td>Fronteira MC vs MS-COMUNICACAO</td></tr>
-      <tr><td>Roadmap IA Movida (6-12 meses)</td><td>Time produto/IA</td><td>Antecipar eventos + Agentforce</td></tr>
+      <tr><td>1. Event Mapping</td><td>—</td><td>Definicao da bridge, contratos de integracao</td></tr>
+      <tr><td>2. Jornadas por BU</td><td>— (paralela a 1)</td><td>Modelo de dados CRM, automacoes, assignment rules</td></tr>
+      <tr><td>3. IA & Handoff</td><td>Area 1 (schema do handoff)</td><td>Flow de processamento, campos no Lead, SLA</td></tr>
+      <tr><td>4. Volumetria & Governanca</td><td>Areas 1+2 (entender escopo)</td><td>Sizing, licenciamento, modelo operacional</td></tr>
+      <tr><td>5. Identity & Data Cloud</td><td>Areas 2+4 (dados e volumetria)</td><td>Estrategia de unificacao, segmentacao, CDC</td></tr>
     </tbody>
   </table>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-label">Resultado esperado</div>
+    Com as 5 areas respondidas, teremos insumos suficientes para produzir: <strong>(1)</strong> Especificacao tecnica de integracao (schemas, contratos, SLAs), <strong>(2)</strong> Modelo de dados CRM detalhado por BU, <strong>(3)</strong> Sizing de licenciamento validado, <strong>(4)</strong> Roadmap de implementacao com fases e dependencias, <strong>(5)</strong> Criterios de sucesso mensuraveis (KPIs de go-live).
   </div>
 </div>
 
