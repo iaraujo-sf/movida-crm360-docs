@@ -300,75 +300,190 @@
   <h2>Visao de Camadas</h2>
   <p>Arquitetura em 5 camadas com contratos explicitos entre elas. Cada camada tem ownership, protocolo de comunicacao e padrao de resiliencia proprios.</p>
 
-  <pre>
-  ┌─────────────────────────────────────────────────────────────────────────────────────┐
-  │  CAMADA 1 — CANAIS (Producao de Demanda)                                           │
-  │  Web | App | Portais | WhatsApp (MobiGestor) | Genesys URA | IA Movida | OLX       │
-  │  Protocolo de saida: HTTP POST → microsservico responsavel                         │
-  │  Contrato: payload bruto, schema livre (cada canal define)                         │
-  └──────────────────────────────────────────────┬──────────────────────────────────────┘
-                                                 │ HTTP (REST)
-                                                 ▼
-  ┌─────────────────────────────────────────────────────────────────────────────────────┐
-  │  CAMADA 2 — MICROSSERVICOS MOVIDA (Dominio de Negocio)                             │
-  │  ms-leads | conversation-service | credit-service | billing | fines | ticket       │
-  │  Responsabilidade: normaliza, valida regras de dominio, publica evento canonico    │
-  │  Protocolo de saida: Pub/Sub publish (JSON, schema registry interno)               │
-  │  Padrao: cada servico e producer de 1 topico (ownership claro)                     │
-  │  Resiliencia: retry local (3x exp backoff) → DLQ no topico                        │
-  └──────────────────────────────────────────────┬──────────────────────────────────────┘
-                                                 │ Pub/Sub publish
-                                                 ▼
-  ╔═════════════════════════════════════════════════════════════════════════════════════╗
-  ║  CAMADA 3 — EVENT BUS (Google Cloud Pub/Sub)                                      ║
-  ║  Barramento corporativo — desacoplamento total entre producers e consumers        ║
-  ║  Topicos inbound: lead-created | cart-abandoned | conversation-handoff |          ║
-  ║                   credit-completed | fine-created | charge-generated | ticket-*   ║
-  ║  Topicos outbound: opportunity-won | lead-qualified | proposal-generated          ║
-  ║  Garantias: at-least-once delivery | ordering por key | retention 7d             ║
-  ║  Observabilidade: Cloud Monitoring (latencia p95, error rate, DLQ depth)          ║
-  ╚══════════════════════════════════════════════╦═══════════════════════════════════════╝
-                                                 ║ Subscription (push ou pull)
-                                                 ▼
-  ┌─────────────────────────────────────────────────────────────────────────────────────┐
-  │  CAMADA 4 — INTEGRATION LAYER (Cloud Run)                                          │
-  │  Bridge bidirecional: GCP Pub/Sub ↔ SF Pub/Sub API (gRPC :7443)                   │
-  │                                                                                     │
-  │  Inbound (GCP → SF):                                                               │
-  │    Consumer pull → Transform (canonical → SF Platform Event schema) → gRPC publish │
-  │                                                                                     │
-  │  Outbound (SF → GCP):                                                              │
-  │    gRPC subscribe (CDC + PE) → Transform (SF → canonical) → Pub/Sub publish        │
-  │                                                                                     │
-  │  Auth: OAuth 2.0 via Connected App (client_credentials, token refresh automatico)  │
-  │  Resiliencia: circuit breaker | retry com backoff | DLQ (topico-dlq)               │
-  │  Scaling: Cloud Run autoscale 0→N (baseado em queue depth)                         │
-  └──────────────────────────────────────────────┬──────────────────────────────────────┘
-                                                 │ gRPC (SF Pub/Sub API :7443)
-                                                 ▼
-  ┌─────────────────────────────────────────────────────────────────────────────────────┐
-  │  CAMADA 5 — CRM OPERACIONAL (Salesforce)                                           │
-  │                                                                                     │
-  │  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────────┐           │
-  │  │  VENDAS           │  │  ATENDIMENTO      │  │  POS-VENDA 360       │           │
-  │  │  Lead → Opp →     │  │  Queues, SLA,     │  │  Contrato, Multa,    │           │
-  │  │  Quote → Contract │  │  Cadencias (Sales │  │  Cobranca (materiali-│           │
-  │  │  (Pipeline + BU)  │  │  Engagement)      │  │  zados via evento)   │           │
-  │  └───────────────────┘  └───────────────────┘  └───────────────────────┘           │
-  │                                                                                     │
-  │  Automacoes: Flow Builder (event-driven) | Apex (callouts sincronos)               │
-  │  Outbound: CDC (replicacao automatica) + Platform Events (fatos de negocio)        │
-  │  Identity: Data Cloud (CPF/CNPJ → perfil unificado cross-BU)                      │
-  │  AI: Agentforce (seller-facing, opera sobre dados materializados)                  │
-  │  Comunicacao: MS-COMUNICACAO → Marketing Cloud (Journey Builder)                   │
-  └─────────────────────────────────────────────────────────────────────────────────────┘
-
-  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
-    CAMADA PARALELA — ANALITICA
-  │ CDC outbound → Cloud Run → Pub/Sub → BigQuery (lake analitico)                    │
-    Feedback loop: insights geram eventos que voltam ao bus (ex: churn score)
-  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
-  </pre>
+  <div style="background:#ECEAE3; border-radius:10px; padding:32px 36px; margin:16px 0;">
+  <style>
+    .arch-diagram .layer { border-radius:7px; border:1px solid #D8D6CE; background:#FFF; overflow:hidden; }
+    .arch-diagram .layer-head { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid rgba(0,0,0,0.06); }
+    .arch-diagram .layer-num { font-family:'SF Mono','Fira Code',monospace; font-size:9.5px; font-weight:500; letter-spacing:1.2px; text-transform:uppercase; padding:3px 8px; border-radius:3px; flex-shrink:0; }
+    .arch-diagram .layer-title { font-size:13px; font-weight:600; }
+    .arch-diagram .layer-tag { margin-left:auto; font-size:10.5px; opacity:0.5; font-family:'SF Mono','Fira Code',monospace; }
+    .arch-diagram .layer-body { padding:16px 20px; }
+    .arch-diagram .pills { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+    .arch-diagram .pill { font-family:'SF Mono','Fira Code',monospace; font-size:10.5px; padding:3px 9px; border-radius:4px; border:1px solid; }
+    .arch-diagram .props { display:flex; flex-direction:column; gap:5px; }
+    .arch-diagram .prop { display:flex; align-items:baseline; gap:12px; font-size:12px; line-height:1.55; }
+    .arch-diagram .pk { font-family:'SF Mono','Fira Code',monospace; font-size:10px; min-width:144px; flex-shrink:0; opacity:0.55; }
+    .arch-diagram .pv { font-size:11.5px; }
+    .arch-diagram .sep { border:none; border-top:1px solid rgba(0,0,0,0.06); margin:12px 0; }
+    .arch-diagram .topic-block { margin-bottom:10px; }
+    .arch-diagram .topic-label { font-family:'SF Mono','Fira Code',monospace; font-size:9.5px; letter-spacing:0.8px; text-transform:uppercase; opacity:0.45; margin-bottom:6px; }
+    .arch-diagram .topics { display:flex; flex-wrap:wrap; gap:5px; }
+    .arch-diagram .topic { font-family:'SF Mono','Fira Code',monospace; font-size:10.5px; padding:2px 8px; border-radius:3px; border:1px solid; }
+    .arch-diagram .flow-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .arch-diagram .flow-box { border-radius:5px; padding:12px 14px; border:1px solid; }
+    .arch-diagram .flow-title { font-size:9.5px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; margin-bottom:8px; }
+    .arch-diagram .flow-steps { display:flex; flex-direction:column; gap:3px; }
+    .arch-diagram .flow-step { display:flex; align-items:baseline; gap:7px; font-family:'SF Mono','Fira Code',monospace; font-size:10.5px; line-height:1.6; }
+    .arch-diagram .fa { opacity:0.4; flex-shrink:0; }
+    .arch-diagram .sf-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+    .arch-diagram .sf-mod { border-radius:5px; padding:11px 13px; border:1px solid; }
+    .arch-diagram .sf-mod-title { font-size:9.5px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; margin-bottom:7px; }
+    .arch-diagram .sf-mod-body { font-size:11px; line-height:1.7; }
+    .arch-diagram .connector { display:flex; flex-direction:column; align-items:center; padding:2px 0; }
+    .arch-diagram .conn-line { width:1px; height:13px; background:#C0BDB6; }
+    .arch-diagram .conn-pill { font-family:'SF Mono','Fira Code',monospace; font-size:9.5px; color:#777; background:#ECEAE3; padding:3px 12px; border:1px solid #CCCAC3; border-radius:20px; margin:2px 0; }
+    .arch-diagram .conn-arrow { font-size:11px; color:#B0ADA6; line-height:1; margin-top:1px; }
+    .arch-diagram .layer-analytics { border-style:dashed; border-width:1.5px; background:transparent; }
+    .arch-diagram .l1 .layer-head { background:#FAFAF8; } .arch-diagram .l1 .layer-num { background:#EBEBEB; color:#666; } .arch-diagram .l1 .pill { background:#F2F2F0; border-color:#D8D8D5; color:#555; }
+    .arch-diagram .l2 { border-left:3px solid #0F9D7D; } .arch-diagram .l2 .layer-head { background:#F4FBF9; } .arch-diagram .l2 .layer-num { background:#D0F0E5; color:#0F6E56; } .arch-diagram .l2 .layer-title { color:#085041; } .arch-diagram .l2 .pill { background:#E1F5EE; border-color:#9FE1CB; color:#085041; } .arch-diagram .l2 .pk { color:#0F9D7D !important; opacity:0.7; } .arch-diagram .l2 .pv { color:#085041; }
+    .arch-diagram .l3 { border-left:3px solid #BA7517; } .arch-diagram .l3 .layer-head { background:#FFFDF5; } .arch-diagram .l3 .layer-num { background:#FAEEDA; color:#854F0B; } .arch-diagram .l3 .layer-title { color:#633806; } .arch-diagram .l3 .topic { background:#FEF3E0; border-color:#FAC775; color:#6B3F08; } .arch-diagram .l3 .pk { color:#BA7517 !important; opacity:0.7; } .arch-diagram .l3 .pv { color:#633806; }
+    .arch-diagram .l4 { border-left:3px solid #534AB7; } .arch-diagram .l4 .layer-head { background:#FAFAFF; } .arch-diagram .l4 .layer-num { background:#EEEDFE; color:#3C3489; } .arch-diagram .l4 .layer-title { color:#26215C; } .arch-diagram .l4 .flow-box { background:#F5F4FE; border-color:#D5D2F4; } .arch-diagram .l4 .flow-title { color:#3C3489; } .arch-diagram .l4 .flow-step { color:#26215C; } .arch-diagram .l4 .pk { color:#7D78CC !important; opacity:0.8; } .arch-diagram .l4 .pv { color:#26215C; }
+    .arch-diagram .l5 { border-left:3px solid #185FA5; } .arch-diagram .l5 .layer-head { background:#F5F9FE; } .arch-diagram .l5 .layer-num { background:#E6F1FB; color:#0C447C; } .arch-diagram .l5 .layer-title { color:#042C53; } .arch-diagram .l5 .sf-mod { background:#EDF5FD; border-color:#C0D9F0; } .arch-diagram .l5 .sf-mod-title { color:#0C447C; } .arch-diagram .l5 .sf-mod-body { color:#185FA5; } .arch-diagram .l5 .pk { color:#378ADD !important; opacity:0.75; } .arch-diagram .l5 .pv { color:#042C53; }
+    .arch-diagram .lp { border-color:#639922; } .arch-diagram .lp .layer-head { background:#F7FBF2; border-bottom-color:rgba(99,153,34,0.18); } .arch-diagram .lp .layer-num { background:#EAF3DE; color:#3B6D11; } .arch-diagram .lp .layer-title { color:#173404; } .arch-diagram .lp .pk { color:#639922 !important; opacity:0.75; } .arch-diagram .lp .pv { color:#27500A; }
+  </style>
+  <div class="arch-diagram">
+    <div class="layer l1">
+      <div class="layer-head">
+        <div class="layer-num">Camada 1</div>
+        <div class="layer-title">Canais — Producao de Demanda</div>
+        <div class="layer-tag">external · ingest</div>
+      </div>
+      <div class="layer-body">
+        <div class="pills">
+          <span class="pill">Web</span><span class="pill">App</span><span class="pill">Portais</span><span class="pill">WhatsApp · MobiGestor</span><span class="pill">Genesys URA</span><span class="pill">IA Movida</span><span class="pill">OLX</span>
+        </div>
+        <div class="props">
+          <div class="prop"><span class="pk">Protocolo de saida</span><span class="pv">HTTP POST → microsservico responsavel</span></div>
+          <div class="prop"><span class="pk">Contrato</span><span class="pv">Payload bruto, schema livre — cada canal define</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"><div class="conn-line"></div><div class="conn-pill">HTTP (REST)</div><div class="conn-line"></div><div class="conn-arrow">▼</div></div>
+    <div class="layer l2">
+      <div class="layer-head">
+        <div class="layer-num">Camada 2</div>
+        <div class="layer-title">Microsservicos Movida — Dominio de Negocio</div>
+        <div class="layer-tag">domain · canonical events</div>
+      </div>
+      <div class="layer-body">
+        <div class="pills">
+          <span class="pill">ms-leads</span><span class="pill">conversation-service</span><span class="pill">credit-service</span><span class="pill">billing</span><span class="pill">fines</span><span class="pill">ticket</span>
+        </div>
+        <div class="props">
+          <div class="prop"><span class="pk">Responsabilidade</span><span class="pv">Normaliza, valida regras de dominio, publica evento canonico</span></div>
+          <div class="prop"><span class="pk">Protocolo de saida</span><span class="pv">Pub/Sub publish — JSON com schema registry interno</span></div>
+          <div class="prop"><span class="pk">Padrao</span><span class="pv">Cada servico e producer de 1 topico (ownership claro)</span></div>
+          <div class="prop"><span class="pk">Resiliencia</span><span class="pv">Retry local (3x exp backoff) → DLQ no topico</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"><div class="conn-line"></div><div class="conn-pill">Pub/Sub publish</div><div class="conn-line"></div><div class="conn-arrow">▼</div></div>
+    <div class="layer l3">
+      <div class="layer-head">
+        <div class="layer-num">Camada 3</div>
+        <div class="layer-title">Event Bus — Google Cloud Pub/Sub</div>
+        <div class="layer-tag">messaging · decoupling</div>
+      </div>
+      <div class="layer-body">
+        <div class="props" style="margin-bottom:13px;">
+          <div class="prop"><span class="pk">Funcao</span><span class="pv">Barramento corporativo — desacoplamento total entre producers e consumers</span></div>
+        </div>
+        <hr class="sep">
+        <div class="topic-block">
+          <div class="topic-label">Topicos Inbound</div>
+          <div class="topics">
+            <span class="topic">lead-created</span><span class="topic">cart-abandoned</span><span class="topic">conversation-handoff</span><span class="topic">credit-completed</span><span class="topic">fine-created</span><span class="topic">ticket-*</span>
+          </div>
+        </div>
+        <div class="topic-block" style="margin-top:10px;">
+          <div class="topic-label">Topicos Outbound</div>
+          <div class="topics">
+            <span class="topic">opportunity-won</span><span class="topic">lead-qualified</span><span class="topic">proposal-generated</span>
+          </div>
+        </div>
+        <hr class="sep">
+        <div class="props">
+          <div class="prop"><span class="pk">Garantias</span><span class="pv">At-least-once delivery · ordering by key · retention 7d</span></div>
+          <div class="prop"><span class="pk">Observabilidade</span><span class="pv">Cloud Monitoring — latencia p95, error rate, DLQ depth</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"><div class="conn-line"></div><div class="conn-pill">Subscription (push ou pull)</div><div class="conn-line"></div><div class="conn-arrow">▼</div></div>
+    <div class="layer l4">
+      <div class="layer-head">
+        <div class="layer-num">Camada 4</div>
+        <div class="layer-title">Integration Layer — Cloud Run</div>
+        <div class="layer-tag">bridge bidirecional · GCP ↔ SF</div>
+      </div>
+      <div class="layer-body">
+        <div class="props" style="margin-bottom:13px;">
+          <div class="prop"><span class="pk">Bridge</span><span class="pv" style="font-family:'SF Mono','Fira Code',monospace; font-size:11px;">GCP Pub/Sub ↔ SF Pub/Sub API (gRPC :7443)</span></div>
+        </div>
+        <div class="flow-grid">
+          <div class="flow-box">
+            <div class="flow-title">Inbound — GCP → SF</div>
+            <div class="flow-steps">
+              <div class="flow-step"><span class="fa">①</span><span>Consumer pull</span></div>
+              <div class="flow-step"><span class="fa">→</span><span>Transform (canonical → SF PE schema)</span></div>
+              <div class="flow-step"><span class="fa">→</span><span>gRPC publish</span></div>
+            </div>
+          </div>
+          <div class="flow-box">
+            <div class="flow-title">Outbound — SF → GCP</div>
+            <div class="flow-steps">
+              <div class="flow-step"><span class="fa">①</span><span>gRPC subscribe (CDC + PE)</span></div>
+              <div class="flow-step"><span class="fa">→</span><span>Transform (SF → canonical)</span></div>
+              <div class="flow-step"><span class="fa">→</span><span>Pub/Sub publish</span></div>
+            </div>
+          </div>
+        </div>
+        <hr class="sep">
+        <div class="props">
+          <div class="prop"><span class="pk">Auth</span><span class="pv">OAuth 2.0 via Connected App — client_credentials, token refresh automatico</span></div>
+          <div class="prop"><span class="pk">Resiliencia</span><span class="pv">Circuit breaker · retry com backoff · DLQ (topico-dlq)</span></div>
+          <div class="prop"><span class="pk">Scaling</span><span class="pv">Cloud Run autoscale 0–N (baseado em queue depth)</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="connector"><div class="conn-line"></div><div class="conn-pill">gRPC — SF Pub/Sub API :7443</div><div class="conn-line"></div><div class="conn-arrow">▼</div></div>
+    <div class="layer l5">
+      <div class="layer-head">
+        <div class="layer-num">Camada 5</div>
+        <div class="layer-title">CRM Operacional — Salesforce Platform</div>
+        <div class="layer-tag">platform · operational core</div>
+      </div>
+      <div class="layer-body">
+        <div class="sf-grid">
+          <div class="sf-mod"><div class="sf-mod-title">Vendas</div><div class="sf-mod-body">Lead → Opp → Quote → Contract<br>Pipeline + BU</div></div>
+          <div class="sf-mod"><div class="sf-mod-title">Atendimento</div><div class="sf-mod-body">Queues, SLA, Cadencias<br>Sales Engagement</div></div>
+          <div class="sf-mod"><div class="sf-mod-title">Pos-Venda 360</div><div class="sf-mod-body">Contrato, Multa, Cobranca<br>Materializados via evento</div></div>
+        </div>
+        <hr class="sep">
+        <div class="props">
+          <div class="prop"><span class="pk">Automacoes</span><span class="pv">Flow Builder (event-driven) · Apex (callouts sincronos)</span></div>
+          <div class="prop"><span class="pk">Outbound</span><span class="pv">CDC (replicacao automatica) + Platform Events (fatos de negocio)</span></div>
+          <div class="prop"><span class="pk">Identity</span><span class="pv">Data Cloud — CPF/CNPJ → perfil unificado cross-BU</span></div>
+          <div class="prop"><span class="pk">AI</span><span class="pv">Agentforce (seller-facing, opera sobre dados materializados)</span></div>
+          <div class="prop"><span class="pk">Comunicacao</span><span class="pv">MS-COMUNICACAO → Marketing Cloud (Journey Builder)</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:20px;"></div>
+    <div class="layer lp layer-analytics">
+      <div class="layer-head">
+        <div class="layer-num">Camada Paralela</div>
+        <div class="layer-title">Analitica</div>
+        <div class="layer-tag">async · parallel · feedback</div>
+      </div>
+      <div class="layer-body">
+        <div class="props">
+          <div class="prop"><span class="pk">Pipeline</span><span class="pv">CDC outbound → Cloud Run → Pub/Sub → BigQuery (lake analitico)</span></div>
+          <div class="prop"><span class="pk">Feedback loop</span><span class="pv">Insights geram eventos que voltam ao bus — ex: churn score</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
 
   <div class="table-wrap">
   <table>
