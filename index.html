@@ -217,6 +217,8 @@
       <li><a href="#" data-section="jornadas">Jornadas Ilustrativas</a></li>
       <li><a href="#" data-section="adrs">Decisoes (ADRs)</a></li>
       <li><a href="#" data-section="tradeoffs">Trade-Offs</a></li>
+      <li class="nav-section-label">Estrategia</li>
+      <li><a href="#" data-section="ea-analysis">EA Account Analysis</a></li>
     </ul>
   </nav>
   <div class="sidebar-footer">Confidencial — Uso Interno<br>v3.0 · Maio 2026</div>
@@ -841,6 +843,197 @@
   </div>
 </div>
 
+
+<!-- EA ACCOUNT ANALYSIS -->
+<div class="section" id="ea-analysis">
+  <h2>EA Account Analysis</h2>
+
+  <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:1rem 1.2rem; margin:0 0 1.5rem; border-radius:0 6px 6px 0; font-size:0.92rem;">
+    <p style="margin:0; color:#856404;"><strong>Disclaimer:</strong> Esta analise de Enterprise Architecture esta limitada aos materiais compartilhados ate o momento (documentos de arquitetura, transcricoes de reunioes e jornadas apresentadas). Nao substitui discovery formal com acesso ao ambiente, entrevistas estruturadas com stakeholders ou analise de telemetria. Gaps de informacao estao sinalizados com <code>[needs validation]</code>.</p>
+  </div>
+
+  <h3>Executive Summary</h3>
+  <p>A Movida opera um ecossistema de backend maduro (Google Cloud Pub/Sub, BigQuery, microsservicos especializados, IA conversacional LangGraph/MCPs), mas carece de uma <strong>camada operacional unificada</strong> para o vendedor — resultando em fragmentacao de visao do cliente entre 4 BUs, impossibilidade de cross-sell e dependencia de consulta manual a multiplos sistemas. A recomendacao e posicionar Salesforce Sales Cloud como camada operacional (nao hub), integrada ao ecossistema existente via Pub/Sub API nativa (gRPC :7443), preservando 100% do investimento GCP.</p>
+
+  <h3>1. Strategic Drivers</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Driver</th><th>Impacto na Arquitetura</th><th>Urgencia</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Fragmentacao cliente cross-BU</strong></td><td>Exige identity resolution (CPF/CNPJ) e unificacao de perfil em camada operacional</td><td><span style="color:#c62828;">High</span></td></tr>
+      <tr><td><strong>Cross-sell inexistente entre BUs</strong></td><td>Demanda materializacao de contexto via eventos + Data Cloud</td><td><span style="color:#c62828;">High</span></td></tr>
+      <tr><td><strong>Lead se perde entre canais</strong></td><td>Ponto unico de operacao com SLA, filas e cadencias</td><td><span style="color:#c62828;">High</span></td></tr>
+      <tr><td><strong>Handoff IA → humano sem destino</strong></td><td>Contrato de evento de handoff + CRM que receba contexto rico</td><td><span style="color:#e65100;">Medium</span></td></tr>
+      <tr><td><strong>Regulatorio (LGPD)</strong></td><td>MS-COMUNICACAO + Marketing Cloud como camada de governanca</td><td><span style="color:#e65100;">Medium</span></td></tr>
+      <tr><td><strong>Escala moderada, complexidade de BU</strong></td><td>Automacao low-code por BU (Record Types, Assignment, Cadences)</td><td><span style="color:#e65100;">Medium</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>2. Technology Landscape</h3>
+
+  <h4>Core Systems</h4>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Sistema</th><th>Papel</th><th>Tecnologia</th><th>Integracao</th><th>Confianca</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Google Cloud Pub/Sub</strong></td><td>Event Bus corporativo</td><td>Managed</td><td>Todos os MS publicam/consomem</td><td>High</td></tr>
+      <tr><td><strong>BigQuery</strong></td><td>Data Lake analitico</td><td>Managed</td><td>Consumer CDC/eventos</td><td>High</td></tr>
+      <tr><td><strong>ms-leads</strong></td><td>Normalizacao de leads</td><td>Cloud Run</td><td>Canais → Pub/Sub</td><td>High</td></tr>
+      <tr><td><strong>conversation-service</strong></td><td>Conversas e handoff IA</td><td>Microsservico</td><td>IA → Pub/Sub</td><td>High</td></tr>
+      <tr><td><strong>Credit / Billing / Fines / Ticket</strong></td><td>Dominios operacionais</td><td>Microsservicos</td><td>Pub/Sub (evento por dominio)</td><td>High</td></tr>
+      <tr><td><strong>IA Movida</strong></td><td>Conversacao, triagem</td><td>LangGraph + MCPs</td><td>MobiGestor → conversation-svc</td><td>High</td></tr>
+      <tr><td><strong>PDM (Proposal)</strong></td><td>Geracao de propostas</td><td>Sistema interno</td><td>API sincrona (excecao)</td><td>High</td></tr>
+      <tr><td><strong>Neoway</strong></td><td>Enriquecimento PJ (CNPJ)</td><td>Terceiro</td><td>Pub/Sub (CNPJValidated)</td><td>High</td></tr>
+      <tr><td><strong>Vetor</strong></td><td>Estoque veiculos (SN)</td><td>Sistema interno</td><td>API sincrona (excecao)</td><td>Inferred</td></tr>
+      <tr><td><strong>Genesys</strong></td><td>URA, Bot, Suporte</td><td>CCaaS</td><td>Fora de escopo CRM 360</td><td>High</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>Integration Architecture</h4>
+  <div class="adr-card">
+    <p><strong>Padrao dominante:</strong> Event-Driven (Pub/Sub). 1 servico = 1 topico. At-least-once. DLQ + retry 3x exp backoff. Retention 7d.</p>
+    <p><strong>Excecoes sincronas (controladas):</strong> PDM (proposta) e Vetor (estoque) — vendedor espera resposta na tela.</p>
+    <p><strong>Bridge proposta:</strong> Cloud Run bidirecional via SF Pub/Sub API (gRPC :7443). Descartados: MuleSoft (custo redundante), Event Relay (so AWS), REST batch (unidirecional).</p>
+  </div>
+
+  <h4>Data Architecture — Gaps Identificados</h4>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Aspecto</th><th>Estado Atual</th><th>Proposta</th></tr></thead>
+    <tbody>
+      <tr><td>Source of truth</td><td>Cada MS dono do seu dominio</td><td>Mantem (nao centralizar)</td></tr>
+      <tr><td>Identity resolution</td><td><strong>GAP</strong> — nao existe cross-BU</td><td>Data Cloud (CPF/CNPJ)</td></tr>
+      <tr><td>Perfil 360</td><td><strong>GAP</strong> — vendedor consulta N sistemas</td><td>Materializacao via eventos no CRM</td></tr>
+      <tr><td>Lake analitico</td><td>BigQuery (operacional)</td><td>CDC outbound alimenta BQ</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>3. Architectural Gap Analysis</h3>
+
+  <div class="adr-card">
+    <h4>Gap: Camada Operacional Unificada</h4>
+    <p><strong>Sintoma:</strong> Vendedor consulta 3-5 sistemas para montar contexto. Tempo perdido, experiencia fragmentada.</p>
+    <p><strong>Causa raiz:</strong> Nao existe consumer que materialize dados relevantes em tela unica.</p>
+    <p><strong>Impacto:</strong> Tempo de primeiro contato elevado, leads perdidos, cross-sell impossivel.</p>
+    <p><strong>Complexidade:</strong> <span style="color:#e65100;">Medium</span> — infraestrutura de eventos ja existe; falta o CRM como consumer.</p>
+  </div>
+
+  <div class="adr-card">
+    <h4>Gap: Identity Resolution Cross-BU</h4>
+    <p><strong>Sintoma:</strong> Paulo aparece como 3 registros diferentes (CPF no RAC, CPF no CPA, CNPJ no GTF).</p>
+    <p><strong>Causa raiz:</strong> Sem camada de identity resolution unificando PF e PJ.</p>
+    <p><strong>Impacto:</strong> Cross-sell = zero. Condicoes especiais nao aplicadas. LTV subestimado.</p>
+    <p><strong>Complexidade:</strong> <span style="color:#e65100;">Medium</span> — Data Cloud resolve com match rules CPF/CNPJ nativos.</p>
+  </div>
+
+  <div class="adr-card">
+    <h4>Gap: Handoff IA → Humano sem Destino</h4>
+    <p><strong>Sintoma:</strong> IA conversa e faz handoff, mas contexto se perde. Vendedor pede ao cliente para repetir.</p>
+    <p><strong>Causa raiz:</strong> Evento de handoff existe, mas nao ha consumer que processe (lead + enrich + notify).</p>
+    <p><strong>Impacto:</strong> Experiencia degradada. Valor da IA conversacional subaproveitado.</p>
+    <p><strong>Complexidade:</strong> <span style="color:#2e7d32;">Low-Medium</span> — evento ja existe, falta Flow no CRM.</p>
+  </div>
+
+  <div class="adr-card">
+    <h4>Gap: SLA e Cadencias sem Enforcement</h4>
+    <p><strong>Sintoma:</strong> Sem medicao de tempo de primeiro contato, sem escalacao, sem cadencia padronizada.</p>
+    <p><strong>Causa raiz:</strong> Sem CRM operacional, nao ha onde implementar SLA tracking.</p>
+    <p><strong>Impacto:</strong> Taxa de contato abaixo do potencial. Gestores sem visibilidade.</p>
+    <p><strong>Complexidade:</strong> <span style="color:#2e7d32;">Low</span> — configuracao nativa (Queues, Assignment, Cadences, Reports).</p>
+  </div>
+
+  <h3>4. Opportunity Map</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Oportunidade</th><th>Valor</th><th>Salesforce</th><th>Esforco</th><th>Confianca</th></tr></thead>
+    <tbody>
+      <tr><td>Visao 360 cross-BU</td><td>Revenue (cross-sell)</td><td>Sales Cloud + Data Cloud</td><td>M</td><td>High</td></tr>
+      <tr><td>SLA enforcement + cadencias</td><td>Revenue (conversao)</td><td>Sales Cloud nativo</td><td>S</td><td>High</td></tr>
+      <tr><td>Handoff IA → CRM com contexto</td><td>Cost (retrabalho) + CX</td><td>Flow + Platform Events</td><td>S</td><td>High</td></tr>
+      <tr><td>Identity resolution CPF/CNPJ</td><td>Revenue (LTV)</td><td>Data Cloud</td><td>M</td><td>High</td></tr>
+      <tr><td>Renovacao automatica CPA/GTF</td><td>Revenue (retencao)</td><td>Marketing Cloud</td><td>M</td><td>Medium</td></tr>
+      <tr><td>Assistencia ao vendedor (NBA)</td><td>Agility (produtividade)</td><td>Agentforce</td><td>M</td><td>Medium</td></tr>
+      <tr><td>CDC → BigQuery (analytics)</td><td>Agility (insights)</td><td>CDC nativo + Cloud Run</td><td>S</td><td>High</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h4>Well-Architected Lens</h4>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Pilar</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Trusted</strong></td><td>OAuth 2.0 (Connected App). Field-level security para CPF/CNPJ. LGPD via MS-COMUNICACAO. Event-driven + DLQ = zero perda em falha.</td></tr>
+      <tr><td><strong>Easy</strong></td><td>~70% nativo (config, nao codigo). Vendedor opera em tela unica. Admin SF gerencia Flows sem dev.</td></tr>
+      <tr><td><strong>Adaptable</strong></td><td>Event-driven = novo consumer sem alterar producers. Record Types para novas BUs. Cloud Run stateless (0→N).</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>5. Risk Register</h3>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Risco</th><th>Categoria</th><th>Prob.</th><th>Impacto</th><th>Mitigacao</th></tr></thead>
+    <tbody>
+      <tr><td>Volumetria real diverge da estimada</td><td>Scale</td><td>Med</td><td>Med</td><td>Workshop volumetria com dados reais</td></tr>
+      <tr><td>Latencia bridge > SLA (&lt;2s p95)</td><td>Operational</td><td>Low</td><td>High</td><td>Cloud Monitoring + autoscaling</td></tr>
+      <tr><td>Schema breaking change sem coordenacao</td><td>Operational</td><td>Med</td><td>High</td><td>Governance board + novo topico para breaking</td></tr>
+      <tr><td>Adocao baixa pelo vendedor</td><td>Operational</td><td>Med</td><td>High</td><td>Change management + UX com menos cliques</td></tr>
+      <tr><td>CPF/CNPJ com qualidade ruim na entrada</td><td>Compliance</td><td>Med</td><td>High</td><td>Validacao no ms-leads + match rules tolerantes</td></tr>
+      <tr><td>DLQ acumulando sem tratamento</td><td>Operational</td><td>Med</td><td>Med</td><td>Review diario + alertas + runbook</td></tr>
+      <tr><td>Token Connected App expira</td><td>Security</td><td>Low</td><td>High</td><td>Auto-refresh (client_credentials) + monitoring</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>6. Conversation Strategy</h3>
+
+  <div class="adr-card">
+    <h4>Opening Frame</h4>
+    <p><em>"Analisando a arquitetura que voces construiram — Pub/Sub como bus, microsservicos por dominio, IA conversacional — temos uma fundacao tecnica madura. A pergunta que queremos explorar juntos e: <strong>como dar ao vendedor a mesma maturidade que o backend ja tem</strong>, sem duplicar governanca ou criar acoplamento?"</em></p>
+  </div>
+
+  <h4>Key Questions</h4>
+  <ol>
+    <li><strong>"Qual e o tempo medio entre lead chegar e primeiro contato? Voces medem?"</strong> — Valida gap de SLA.</li>
+    <li><strong>"Quando a IA faz handoff, o que acontece com o contexto? Vendedor recebe ou comeca do zero?"</strong> — Valida gap de handoff.</li>
+    <li><strong>"Ja tentaram cross-sell entre BUs? O que impediu?"</strong> — Valida gap de identity resolution.</li>
+    <li><strong>"O ms-leads publica em formato canonico ou cada canal tem schema proprio?"</strong> — Valida maturidade para integracao.</li>
+    <li><strong>"Qual o appetite para operar CRM com time proprio vs depender de parceiro?"</strong> — Define modelo operacional.</li>
+  </ol>
+
+  <h4>Landmines</h4>
+  <div style="background:#ffebee; border-left:4px solid #c62828; padding:0.8rem 1rem; border-radius:0 6px 6px 0; font-size:0.9rem;">
+    <ul style="margin:0; padding-left:1.2rem;">
+      <li>Nao questionar escolha de Pub/Sub (decisao consolidada)</li>
+      <li>Nao sugerir SF como hub/substituto do bus ou lake</li>
+      <li>Nao mencionar MuleSoft proativamente (ja descartado)</li>
+      <li>Nao prometer fields/schemas (nivel arte do possivel)</li>
+      <li>Cuidado com parceiro LEO — alinhar como complementar, nao concorrente</li>
+    </ul>
+  </div>
+
+  <h3>7. Research Opportunities</h3>
+  <p>Gaps de informacao que fortaleceriam esta analise em workshops subsequentes:</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>O que pesquisar</th><th>Fonte</th><th>Valor</th></tr></thead>
+    <tbody>
+      <tr><td>Volumetria real por BU (CPA, GTF, SN)</td><td>Dados internos Movida</td><td>Sizing de licenciamento</td></tr>
+      <tr><td>Schema do evento LeadCreated</td><td>Time de engenharia</td><td>Define transform layer da bridge</td></tr>
+      <tr><td>Payload do ConversationHandoff</td><td>Time IA / conversation-svc</td><td>Campos a materializar no Lead</td></tr>
+      <tr><td>API spec do PDM (REST? gRPC?)</td><td>Time PDM</td><td>Define callout (Apex vs Flow HTTP)</td></tr>
+      <tr><td>Hierarquia de lojas</td><td>Operacao Movida</td><td>Territory Management vs custom</td></tr>
+      <tr><td>CRM atual (se existe)</td><td>Leandro/stakeholders</td><td>Migracao vs greenfield</td></tr>
+      <tr><td>MS-COMUNICACAO: canais e templates</td><td>Time comunicacao</td><td>Fronteira MC vs MS-COMUNICACAO</td></tr>
+      <tr><td>Roadmap IA Movida (6-12 meses)</td><td>Time produto/IA</td><td>Antecipar eventos + Agentforce</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
 
 </main>
 
