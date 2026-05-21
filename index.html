@@ -297,44 +297,98 @@
 <!-- CAMADAS -->
 <div class="section" id="camadas">
   <h2>Visao de Camadas</h2>
-  <p>5 camadas distintas, cada uma com ownership proprio. O que passa entre elas: <strong>eventos</strong>.</p>
+  <p>Arquitetura em 5 camadas com contratos explicitos entre elas. Cada camada tem ownership, protocolo de comunicacao e padrao de resiliencia proprios.</p>
 
   <pre>
-  CANAIS ─── Web | Portais | WhatsApp | Genesys | IA Movida | Parceiros
-     │
-     ▼
-  MICROSSERVICOS ─── ms-leads | conversation-svc | Credit | Billing | Fines | Ticket
-     │                        (cada um publica eventos padronizados)
-     ▼
-  ═══════════ EVENT BUS (Google Cloud Pub/Sub) ═══════════════════════════
-     │                        Barramento central corporativo
-     ▼
-  INTEGRATION LAYER ─── Cloud Run (bridge bidirecional GCP ↔ SF Pub/Sub API gRPC)
-     │
-     ▼
-  CRM OPERACIONAL (Salesforce)
-  ┌────────────────┐  ┌───────────────────┐  ┌─────────────────────┐
-  │    VENDAS      │  │   ATENDIMENTO     │  │    POS-VENDA 360    │
-  │  Leads, Opps,  │  │   Filas, SLA,     │  │  Contratos, Multas, │
-  │  Pipeline      │  │   Cadencias       │  │  Cobrancas (leitura)│
-  └────────────────┘  └───────────────────┘  └─────────────────────┘
-  + Data Cloud | + Agentforce | + Marketing Cloud
+  ┌─────────────────────────────────────────────────────────────────────────────────────┐
+  │  CAMADA 1 — CANAIS (Producao de Demanda)                                           │
+  │  Web | App | Portais | WhatsApp (MobiGestor) | Genesys URA | IA Movida | OLX       │
+  │  Protocolo de saida: HTTP POST → microsservico responsavel                         │
+  │  Contrato: payload bruto, schema livre (cada canal define)                         │
+  └──────────────────────────────────────────────┬──────────────────────────────────────┘
+                                                 │ HTTP (REST)
+                                                 ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────────┐
+  │  CAMADA 2 — MICROSSERVICOS MOVIDA (Dominio de Negocio)                             │
+  │  ms-leads | conversation-service | credit-service | billing | fines | ticket       │
+  │  Responsabilidade: normaliza, valida regras de dominio, publica evento canonico    │
+  │  Protocolo de saida: Pub/Sub publish (JSON, schema registry interno)               │
+  │  Padrao: cada servico e producer de 1 topico (ownership claro)                     │
+  │  Resiliencia: retry local (3x exp backoff) → DLQ no topico                        │
+  └──────────────────────────────────────────────┬──────────────────────────────────────┘
+                                                 │ Pub/Sub publish
+                                                 ▼
+  ╔═════════════════════════════════════════════════════════════════════════════════════╗
+  ║  CAMADA 3 — EVENT BUS (Google Cloud Pub/Sub)                                      ║
+  ║  Barramento corporativo — desacoplamento total entre producers e consumers        ║
+  ║  Topicos inbound: lead-created | cart-abandoned | conversation-handoff |          ║
+  ║                   credit-completed | fine-created | charge-generated | ticket-*   ║
+  ║  Topicos outbound: opportunity-won | lead-qualified | proposal-generated          ║
+  ║  Garantias: at-least-once delivery | ordering por key | retention 7d             ║
+  ║  Observabilidade: Cloud Monitoring (latencia p95, error rate, DLQ depth)          ║
+  ╚══════════════════════════════════════════════╦═══════════════════════════════════════╝
+                                                 ║ Subscription (push ou pull)
+                                                 ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────────┐
+  │  CAMADA 4 — INTEGRATION LAYER (Cloud Run)                                          │
+  │  Bridge bidirecional: GCP Pub/Sub ↔ SF Pub/Sub API (gRPC :7443)                   │
+  │                                                                                     │
+  │  Inbound (GCP → SF):                                                               │
+  │    Consumer pull → Transform (canonical → SF Platform Event schema) → gRPC publish │
+  │                                                                                     │
+  │  Outbound (SF → GCP):                                                              │
+  │    gRPC subscribe (CDC + PE) → Transform (SF → canonical) → Pub/Sub publish        │
+  │                                                                                     │
+  │  Auth: OAuth 2.0 via Connected App (client_credentials, token refresh automatico)  │
+  │  Resiliencia: circuit breaker | retry com backoff | DLQ (topico-dlq)               │
+  │  Scaling: Cloud Run autoscale 0→N (baseado em queue depth)                         │
+  └──────────────────────────────────────────────┬──────────────────────────────────────┘
+                                                 │ gRPC (SF Pub/Sub API :7443)
+                                                 ▼
+  ┌─────────────────────────────────────────────────────────────────────────────────────┐
+  │  CAMADA 5 — CRM OPERACIONAL (Salesforce)                                           │
+  │                                                                                     │
+  │  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────────┐           │
+  │  │  VENDAS           │  │  ATENDIMENTO      │  │  POS-VENDA 360       │           │
+  │  │  Lead → Opp →     │  │  Queues, SLA,     │  │  Contrato, Multa,    │           │
+  │  │  Quote → Contract │  │  Cadencias (Sales │  │  Cobranca (materiali-│           │
+  │  │  (Pipeline + BU)  │  │  Engagement)      │  │  zados via evento)   │           │
+  │  └───────────────────┘  └───────────────────┘  └───────────────────────┘           │
+  │                                                                                     │
+  │  Automacoes: Flow Builder (event-driven) | Apex (callouts sincronos)               │
+  │  Outbound: CDC (replicacao automatica) + Platform Events (fatos de negocio)        │
+  │  Identity: Data Cloud (CPF/CNPJ → perfil unificado cross-BU)                      │
+  │  AI: Agentforce (seller-facing, opera sobre dados materializados)                  │
+  │  Comunicacao: MS-COMUNICACAO → Marketing Cloud (Journey Builder)                   │
+  └─────────────────────────────────────────────────────────────────────────────────────┘
 
-  ─── ANALITICA (paralela) ─── BigQuery → Insights → publica evento de volta
+  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
+    CAMADA PARALELA — ANALITICA
+  │ CDC outbound → Cloud Run → Pub/Sub → BigQuery (lake analitico)                    │
+    Feedback loop: insights geram eventos que voltam ao bus (ex: churn score)
+  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
   </pre>
 
-  <div class="story" data-icon="&#128640;">
-    <div class="story-label">Jornada CPA — Paulo volta pelo WhatsApp</div>
-    <div class="story-title">Como as camadas interagem na pratica</div>
-    <ol>
-      <li><strong>Canal:</strong> Paulo chama a Movida pelo WhatsApp</li>
-      <li><strong>Microsservico:</strong> Agentforce/IA realiza triagem, qualifica, decide handoff</li>
-      <li><strong>Event Bus:</strong> Evento <em>ConversationHandoff</em> publicado (com resumo, intencao, historico)</li>
-      <li><strong>Integration Layer:</strong> Cloud Run transforma payload e entrega ao SF</li>
-      <li><strong>CRM:</strong> Flow cria/atualiza lead, vincula historico IA, notifica vendedora</li>
-      <li><strong>Vendedora:</strong> Acessa visao 360, ve que Paulo ja e cliente CPA, oferece extensao de 35 meses</li>
-    </ol>
-    <div class="story-rule"><strong>Resultado:</strong> Vendedora tem contexto completo sem sair do CRM. IA + humano em continuidade.</div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Camada</th><th>Protocolo ↓</th><th>Contrato</th><th>Resiliencia</th><th>Observabilidade</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Canais → MS</strong></td><td>HTTP REST</td><td>Schema livre (MS normaliza)</td><td>Retry no cliente</td><td>APM do canal</td></tr>
+      <tr><td><strong>MS → Bus</strong></td><td>Pub/Sub publish</td><td>JSON canonico (schema registry)</td><td>3x exp backoff → DLQ</td><td>Pub/Sub metrics</td></tr>
+      <tr><td><strong>Bus → Bridge</strong></td><td>Subscription pull</td><td>Envelope padrao (metadata + payload)</td><td>Ack deadline + nack</td><td>Cloud Monitoring</td></tr>
+      <tr><td><strong>Bridge → SF</strong></td><td>gRPC (Pub/Sub API)</td><td>Platform Event schema</td><td>Circuit breaker + DLQ</td><td>Latencia p95 &lt; 2s</td></tr>
+      <tr><td><strong>SF → Bridge</strong></td><td>gRPC subscribe (CDC/PE)</td><td>ChangeEvent / PE payload</td><td>Replay ID (re-delivery)</td><td>EventBus metrics SF</td></tr>
+      <tr><td><strong>Bridge → Bus</strong></td><td>Pub/Sub publish</td><td>JSON canonico outbound</td><td>Retry + DLQ</td><td>Cloud Monitoring</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="adr-card">
+    <h4>Principios de Comunicacao entre Camadas</h4>
+    <p><strong>1. Ownership de topico:</strong> Cada microsservico e dono de exatamente 1 topico. Nenhum servico publica no topico de outro.</p>
+    <p><strong>2. Schema evolution:</strong> Campos novos sao aditivos (backward-compatible). Breaking changes exigem novo topico + periodo de transicao.</p>
+    <p><strong>3. Idempotencia:</strong> Todo consumer deve ser idempotente (at-least-once delivery). Dedup por ID_Externo no SF.</p>
+    <p><strong>4. Falha isolada:</strong> Se SF cair, mensagens acumulam no bus (retention 7d). Bridge retoma automaticamente. Zero perda.</p>
   </div>
 </div>
 
